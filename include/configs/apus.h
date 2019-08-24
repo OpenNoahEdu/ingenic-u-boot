@@ -81,8 +81,47 @@
 
 #define CONFIG_BOOTDELAY	1
 #define CONFIG_BOOTFILE	        "uImage"	/* file to load */
-#define CONFIG_BOOTARGS		"mem=64M console=ttyS3,57600n8 ip=off rootfstype=yaffs2 root=/dev/mtdblock2 rw"
-#define CONFIG_BOOTCOMMAND	"nand read 0x80600000 0x400000 0x300000;bootm"
+#define CONFIG_BOOTTYPE			"normal"
+#define CONFIG_BOOTTYPE_REVY	"recovery"
+
+
+#define LINUX_CMDLINE0 \
+	"mem=64M console=ttyS3,57600n8 ip=off rootfstype=yaffs2 root=/dev/mtdblock2 rw"
+
+#define LINUX_CMDLINE1 \
+	"mem=64M console=ttyS3,57600n8 ip=off rw rdinit=/linuxrc"
+
+#define LINUX_CMDLINE2 \
+	"mem=64M console=ttyS3,57600n8 ip=off root=/dev/ram0 rw rdinit=/init"
+
+#define LINUX_CMDLINE3 \
+	"mem=64M console=ttyS3,57600n8 ip=off rootfstype=ext3 root=/dev/mmcblk0p1 rw"
+
+#define LINUX_CMDLINE4 \
+	"mem=64M console=ttyS3,57600n8 ip=192.168.1.125 nfsroot=192.168.1.171:/root/ingenic/nfsroot rw noinitrd"
+
+#define LINUX_CMDLINE5 \
+	"mem=64M console=ttyS3,57600n8 ip=192.168.10.125 nfsroot=192.168.10.115:/root/ingenic/nfsroot rw noinitrd"
+
+
+#ifdef CFG_JZ_LINUX_RECOVERY
+#ifdef CONFIG_MSC_U_BOOT			
+#define CONFIG_REVY_BOOTARGS		LINUX_CMDLINE1
+#define CONFIG_REVY_BOOTCOMMAND		"msc read 0x80600000 0x500000 0x300000;bootm"
+#else  /* CONFIG_NAND_U_BOOT */
+#define CONFIG_REVY_BOOTARGS		LINUX_CMDLINE1
+#define CONFIG_REVY_BOOTCOMMAND		"nand read 0x80600000 0x500000 0x300000;bootm"
+#endif
+#endif
+
+
+#ifdef CONFIG_MSC_U_BOOT
+#define CONFIG_BOOTARGS     LINUX_CMDLINE3
+#define CONFIG_BOOTCOMMAND  "msc read 0x80600000 0x400000 0x300000;bootm"
+#else  /* CONFIG_NAND_U_BOOT */
+#define CONFIG_BOOTARGS     LINUX_CMDLINE0
+#define CONFIG_BOOTCOMMAND  "nand read 0x80600000 0x400000 0x300000;bootm"
+#endif
 #define CFG_AUTOLOAD		"n"		/* No autoload */
 
 #define CONFIG_NET_MULTI
@@ -129,6 +168,71 @@
 #define CFG_CMDLINE		CONFIG_BOOTARGS
 #define CFG_NAND_ZIMAGE_OFFS	(CFG_NAND_BLOCK_SIZE*4) /* NAND offset of zImage being loaded */
 #define CFG_SPI_ZIMAGE_OFFS	(256 << 10) /* NAND offset of zImage being loaded */
+
+#if defined(CONFIG_NAND_U_BOOT)
+/*-----------------------------------------------------------------------
+ * Nand Partition info
+ */
+#define PTN_MISC_SIZE               (  1 * 0x100000)
+#define PTN_RECOVERY_SIZE           (  5 * 0x100000)
+#define PTN_BOOT_SIZE               (  4 * 0x100000)
+#define PTN_SYSTEM_SIZE             (128 * 0x100000)
+#define PTN_USERDATA_SIZE           (256 * 0x100000)
+#define PTN_CACHE_SIZE              (32 * 0x100000)
+#define PTN_KPANIC_SIZE             (  2 * 0x100000)
+#define PTN_PRETEST_SIZE            PTN_KPANIC_SIZE
+#define PTN_STORAGE_SIZE            (MTDPART_SIZ_FULL)
+
+/* Reserve 32MB for bootloader, splash1, splash2 and radiofw */
+#define PTN_MISC_OFFSET                 (32  * 0x100000)
+#define PTN_RECOVERY_OFFSET       (PTN_MISC_OFFSET + PTN_MISC_SIZE)
+#define PTN_BOOT_OFFSET                (PTN_MISC_OFFSET + PTN_MISC_SIZE + PTN_RECOVERY_SIZE)
+#define PTN_KPANIC_OFFSET             (PTN_MISC_OFFSET + PTN_MISC_SIZE + PTN_RECOVERY_SIZE + PTN_BOOT_SIZE + PTN_SYSTEM_SIZE + PTN_USERDATA_SIZE + PTN_CACHE_SIZE)
+#define PTN_PRETEST_OFFSET           PTN_KPANIC_OFFSET
+
+#elif defined(CONFIG_MSC_U_BOOT)
+/*-----------------------------------------------------------------------
+ *  * MSC Partition info
+ *   */
+#define PTN_MISC_SIZE               (  4 * 0x100000)
+#define PTN_SYSTEM_SIZE             (256 * 0x100000)
+#define PTN_USERDATA_SIZE           (500 * 0x100000)
+#define PTN_CACHE_SIZE              (128 * 0x100000)
+#define PTN_KPANIC_SIZE             (  4 * 0x100000)
+#define PTN_PRETEST_SIZE            PTN_KPANIC_SIZE
+#define PTN_STORAGE_SIZE            (MTDPART_SIZ_FULL)
+#define PTN_MISC_OFFSET                 (32  * 0x100000)
+#define PTN_KPANIC_OFFSET               (PTN_MISC_OFFSET + PTN_MISC_SIZE + PTN_RECOVERY_SIZE + PTN_BOOT_SIZE + PTN_SYSTEM_SIZE + PTN_USERDATA_SIZE + PTN_CACHE_SIZE)
+#define PTN_PRETEST_OFFSET              PTN_KPANIC_OFFSET
+
+#define PTN_BOOT_SIZE               ( 4 * 0x100000)
+#define PTN_RECOVERY_SIZE           ( 4 * 0x100000)
+
+#define PTN_BOOT_OFFSET                 (5 * 0x100000)
+#define PTN_RECOVERY_OFFSET             (11* 0x100000)
+
+/*-----------------------------------------------------------------------
+ * MBR Partition info
+ */
+#define JZ_MBR_TABLE
+
+#define MBR_P1_OFFSET 	0x800000
+#define MBR_P1_SIZE 	0x10000000
+#define MBR_P1_TYPE 	0x83
+
+#define MBR_P2_OFFSET 	0x19000000
+#define MBR_P2_SIZE 	0x20000000
+#define MBR_P2_TYPE 	0x83
+
+#define MBR_P3_OFFSET 	0x3a400000
+#define MBR_P3_SIZE 	0x2000000
+#define MBR_P3_TYPE 	0x83
+
+#define MBR_P4_OFFSET 	0x40000000
+#define MBR_P4_SIZE 	0xa8c00000
+#define MBR_P4_TYPE 	0x83
+
+#endif
 
 /*-----------------------------------------------------------------------
  * Environment
@@ -287,4 +391,16 @@
 #define GPIO_SD0_VCC_EN_N	(32*2+10) /* GPC10 */
 #define GPIO_SD0_CD_N		(32*2+11) /* GPC11 */
 #define GPIO_SD0_WP		(32*2+12) /* GPC12 */
+
+#define GPIO_KEY_VOLUME_DEC		(32*4 + 7)/*GPC29  sw3 */
+
+#define UBOOT_SEL_REVY_KEY1             GPIO_KEY_VOLUME_DEC
+#define UBOOT_SEL_REVY_KEY2             GPIO_KEY_VOLUME_DEC
+#define UBOOT_SEL_REVY_KEY3             GPIO_KEY_VOLUME_DEC
+
+/*================================================
+ * ETHERNET
+ */
+//#define CONFIG_DRIVER_AX88796C 1
+
 #endif	/* __CONFIG_H */

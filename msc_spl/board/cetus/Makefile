@@ -26,8 +26,9 @@ include $(TOPDIR)/msc_spl/board/$(BOARDDIR)/config.mk
 
 LDSCRIPT= $(TOPDIR)/msc_spl/board/$(BOARDDIR)/u-boot.lds
 LDFLAGS	= -Bstatic -T $(LDSCRIPT) -Ttext $(TEXT_BASE)
-AFLAGS	+= -DCONFIG_NAND_SPL -DCONFIG_MSC_SPL
-CFLAGS	+= -DCONFIG_NAND_SPL -DCONFIG_MSC_SPL
+AFLAGS	+= -DCONFIG_MSC_SPL
+CFLAGS	+= -DCONFIG_MSC_SPL
+
 
 SOBJS	= start.o
 COBJS	= msc_boot_jz4750.o cpu.o jz4750.o jz_serial.o

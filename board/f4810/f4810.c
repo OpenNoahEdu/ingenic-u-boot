@@ -1,6 +1,6 @@
 /*
- * (C) Copyright 2006
- * Ingenic Semiconductor, <jlwei@ingenic.cn>
+ * (C) Copyright 2010
+ * Ingenic Semiconductor, <cwjia@ingenic.cn>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -28,9 +28,6 @@ static void gpio_init(void)
 	/*
 	 * Initialize UART1 pins
 	 */
-	__gpio_as_uart2();
-
-#if 0
 #if CFG_UART_BASE == UART0_BASE
 	__gpio_as_uart0();
 #elif CFG_UART_BASE == UART1_BASE
@@ -39,7 +36,6 @@ static void gpio_init(void)
 	__gpio_as_uart2();
 #else /* CFG_UART_BASE == UART1_BASE */
 	__gpio_as_uart3();
-#endif
 #endif
 }
 

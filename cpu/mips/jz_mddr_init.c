@@ -5,7 +5,22 @@
 
 #include <config.h>
 #include <common.h>
+
+#if defined(CONFIG_JZ4760)
 #include <asm/jz4760.h>
+#endif
+
+#if defined(CONFIG_JZ4760B)
+#include <asm/jz4760b.h>
+#endif
+
+#if defined(CONFIG_JZ4770)
+#include <asm/jz4770.h>
+#endif
+
+#if defined(CONFIG_JZ4810)
+#include <asm/jz4810.h>
+#endif
 
 void ddr_mem_init(int msel, int hl, int tsel, int arg);
 
@@ -25,7 +40,8 @@ void ddr_mem_init(int msel, int hl, int tsel, int arg)
 
 #else /* CONFIG_FPGA */
 
-	ddrc_cfg_reg = DDRC_CFG_BTRUN | DDRC_CFG_TYPE_MDDR
+//	ddrc_cfg_reg = DDRC_CFG_BTRUN | DDRC_CFG_TYPE_MDDR
+	ddrc_cfg_reg = DDRC_CFG_TYPE_MDDR
 		| (DDR_ROW - 12) << 10 | (DDR_COL - 8) << 8 | DDR_CS1EN << 7 | DDR_CS0EN << 6
 		| ((DDR_CL - 1) | 0x8) << 2 | DDR_BANK8 << 1 | DDR_DW32;
 
@@ -39,6 +55,8 @@ void ddr_mem_init(int msel, int hl, int tsel, int arg)
 #endif
 	ddr_twr = ((REG_DDRC_TIMING1 & DDRC_TIMING1_TWR_MASK) >> DDRC_TIMING1_TWR_BIT) + 1;
 	REG_DDRC_CFG     = ddrc_cfg_reg;
+//	REG_DDRC_CFG     = 0x0000b5e9;
+//	REG_DDRC_CFG     &= ~(1 << 21);
 	REG_DDRC_MDELAY = init_ddrc_mdelay | DDRC_MDELAY_MAUTO;
 	/***** init ddrc registers & ddr memory regs ****/
 

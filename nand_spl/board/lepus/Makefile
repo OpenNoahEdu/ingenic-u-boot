@@ -22,7 +22,17 @@
 #
 
 include $(TOPDIR)/config.mk
+include $(TOPDIR)/include/config.mk
 include $(TOPDIR)/nand_spl/board/$(BOARDDIR)/config.mk
+
+ifdef CONFIG_SPL_AS_USB_BOOT
+AFLAGS += -DCONFIG_AS_USB_BOOT
+CFLAGS += -DCONFIG_AS_USB_BOOT
+TEXT_BASE = 0x80002000
+RENAME_SPL = cp $@ $(OBJTREE)/fw.bin 
+else
+RENAME_SPL =
+endif
 
 LDSCRIPT= $(TOPDIR)/nand_spl/board/$(BOARDDIR)/u-boot.lds
 LDFLAGS	= -Bstatic -T $(LDSCRIPT) -Ttext $(TEXT_BASE)
@@ -32,6 +42,7 @@ CFLAGS	+= -DCONFIG_NAND_SPL
 SOBJS	= start.o
 COBJS	= nand_boot_jz4760.o cpu.o jz4760.o jz_serial.o jz4760_ddr.o jz_ddr2_init.o
 #COBJS	= nand_boot_jz4760.o cpu.o jz4760.o jz_serial.o jz4760_ddr.o jz_ddr1_init.o
+#COBJS	= nand_boot_jz4760.o cpu.o jz4760.o jz_serial.o jz4760_ddr.o jz_mddr_init.o
 
 SRCS	:= $(addprefix $(obj),$(SOBJS:.o=.S) $(COBJS:.o=.c))
 OBJS	:= $(addprefix $(obj),$(SOBJS) $(COBJS))
@@ -51,6 +62,7 @@ $(nandobj)u-boot-spl-pad.bin: $(nandobj)u-boot-spl.bin
 
 $(nandobj)u-boot-spl.bin:	$(nandobj)u-boot-spl
 	$(OBJCOPY) ${OBJCFLAGS} -O binary $< $@
+	$(RENAME_SPL)
 
 $(nandobj)u-boot-spl:	$(OBJS)
 	cd $(LNDIR) && $(LD) $(LDFLAGS) $$UNDEF_SYM $(__OBJS) \
@@ -83,6 +95,10 @@ $(obj)jz_ddr2_init.c:
 $(obj)jz_ddr1_init.c:
 	@rm -f $(obj)jz_ddr1_init.c
 	ln -s $(SRCTREE)/cpu/mips/jz_ddr1_init.c $(obj)jz_ddr1_init.c
+
+$(obj)jz_mddr_init.c:
+	@rm -f $(obj)jz_mddr_init.c
+	ln -s $(SRCTREE)/cpu/mips/jz_mddr_init.c $(obj)jz_mddr_init.c
 
 $(obj)jz_serial.c:
 	@rm -f $(obj)jz_serial.c

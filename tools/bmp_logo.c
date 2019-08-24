@@ -71,7 +71,7 @@ int main (int argc, char *argv[])
 	bitmap_t *b = &bmp;
 	uint16_t data_offset, n_colors=0;
 
-	int nbit;
+	int nbit = 0;
 
 #if defined(CONFIG_LCD)
 #if LCD_BPP==4

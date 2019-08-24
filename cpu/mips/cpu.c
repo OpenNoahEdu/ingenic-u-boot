@@ -52,7 +52,7 @@
 #include <asm/jz4760.h>
 #endif
 
-#if !defined (CONFIG_NAND_SPL) && !defined (CONFIG_MSC_SPL) 
+#if !defined (CONFIG_NAND_SPL) && !defined (CONFIG_MSC_SPL) && !defined (CONFIG_SPI_SPL) 
 
 int do_reset(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {

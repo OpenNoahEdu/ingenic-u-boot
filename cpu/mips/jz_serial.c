@@ -28,7 +28,7 @@
 
 #if defined(CONFIG_JZ4730) || defined(CONFIG_JZ4740) || defined(CONFIG_JZ4750) \
 	|| defined(CONFIG_JZ4750D) || defined(CONFIG_JZ4750L) || defined(CONFIG_JZ5730)\
-	|| defined(CONFIG_JZ4760) || defined(CONFIG_JZ4810)
+	|| defined(CONFIG_JZ4760) || defined(CONFIG_JZ4760B) || defined(CONFIG_JZ4770) || defined(CONFIG_JZ4810)
 
 #include <common.h>
 
@@ -52,6 +52,12 @@
 #endif
 #if defined(CONFIG_JZ4760)
 #include <asm/jz4760.h>
+#endif
+#if defined(CONFIG_JZ4760B)
+#include <asm/jz4760.h>
+#endif
+#if defined(CONFIG_JZ4770)
+#include <asm/jz4770.h>
 #endif
 #if defined(CONFIG_JZ4810)
 #include <asm/jz4810.h>

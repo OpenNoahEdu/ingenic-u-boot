@@ -5,7 +5,21 @@
 
 #include <config.h>
 #include <common.h>
+#if defined(CONFIG_JZ4760)
 #include <asm/jz4760.h>
+#endif
+
+#if defined(CONFIG_JZ4760B)
+#include <asm/jz4760b.h>
+#endif
+
+#if defined(CONFIG_JZ4770)
+#include <asm/jz4770.h>
+#endif
+
+#if defined(CONFIG_JZ4810)
+#include <asm/jz4810.h>
+#endif
 
 void ddr_mem_init(int msel, int hl, int tsel, int arg);
 
@@ -119,4 +133,5 @@ void ddr_mem_init(int msel, int hl, int tsel, int arg)
 	/* wait DDR_tMRD */
 	tmp_cnt = (cpu_clk / 1000000) * 1;
 	while (tmp_cnt--);
+
 }

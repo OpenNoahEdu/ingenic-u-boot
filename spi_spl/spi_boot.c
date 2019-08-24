@@ -26,6 +26,8 @@
 #include <asm/jz4750.h>
 #elif defined(CONFIG_JZ4760)
 #include <asm/jz4760.h>
+#elif defined(CONFIG_JZ4810)
+#include <asm/jz4810.h>
 #endif
 
 #define CMD_READ        	0x03	/* Read Data */
@@ -54,8 +56,10 @@ static inline void spi_disable(void)
 {
 #if defined(CONFIG_JZ4750)
 	REG_GPIO_PXPEC(1) = 0x3c000000;
-#else /* CONFIG_JZ4760 */
+#elif defined(CONFIG_JZ4760)
 	REG_GPIO_PXPEC(0) = 0x003c0000;
+#else /* CONFIG_JZ4810 */
+	REG_GPIO_PXPENC(0) = 0x003c0000;	
 #endif
 	REG_SSI_CR0(IDX) &= ~SSI_CR0_SSIE;
 }
@@ -65,8 +69,10 @@ static inline void spi_enable(void)
 	REG_SSI_CR0(IDX) |= SSI_CR0_SSIE;
 #if defined(CONFIG_JZ4750)
 	REG_GPIO_PXPES(1)  = 0x3c000000;
-#else /* CONFIG_JZ4760 */
+#elif defined(CONFIG_JZ4760)
 	REG_GPIO_PXPES(0) = 0x003c0000;
+#else /* CONFIG_JZ4810 */
+	REG_GPIO_PXPENS(0) = 0x003c0000;
 #endif
 }
 
@@ -83,7 +89,14 @@ static inline int jz_spi_write_dummy_and_read( unsigned char * read_buf, int cou
 		while (__ssi_get_rxfifo_count(IDX) != SSI_MAX_FIFO_ENTRIES);
 		for(j = 0; j < SSI_MAX_FIFO_ENTRIES; j++) {
 			*read_buf = REG_SSI_DR(IDX);
-			//serial_puts_long(*read_buf);
+#if 0
+			if (j % 16 == 0) {
+				serial_puts("\n");
+				serial_put_hex( i * SSI_MAX_FIFO_ENTRIES + j + 0x2000);
+				serial_puts(":\n");
+			}
+			serial_put_hex(*read_buf);
+#endif
 			read_buf++;
 		}
 	}
@@ -265,13 +278,10 @@ void spl_boot(void)
 	/*
 	 * Init hardware
 	 */
-	__cpm_start_uart1();
 	__cpm_start_mdma();
-	__cpm_start_emc();
 	__cpm_start_ddr();
-
 	/* enable mdmac's clock */
-	REG_MDMAC_DMACKE = 0x3;
+	REG_MDMAC_DMACKES = 0x3;
 	gpio_init();
 	serial_init();
 

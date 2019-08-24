@@ -31,4 +31,4 @@
 # in the first 4kBytes of memory space in cache. So we set
 # TEXT_BASE to starting address in internal cache here.
 #
-TEXT_BASE = 0x80000000
+TEXT_BASE = 0x80000200

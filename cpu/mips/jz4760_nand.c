@@ -12,10 +12,15 @@
 
 #include <common.h>
 
-#if (CONFIG_COMMANDS & CFG_CMD_NAND) &&	defined(CONFIG_JZ4760)
+#if (CONFIG_COMMANDS & CFG_CMD_NAND) &&	(defined(CONFIG_JZ4760) || defined(CONFIG_JZ4760B))
 #include <nand.h>
+
 #if defined(CONFIG_JZ4760)
 #include <asm/jz4760.h>
+#endif
+
+#if defined(CONFIG_JZ4760B)
+#include <asm/jz4760b.h>
 #endif
 
 /* Size of ecc parities per 512 bytes, in half-byte */

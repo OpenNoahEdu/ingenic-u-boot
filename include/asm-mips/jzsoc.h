@@ -39,5 +39,16 @@
 #include <asm/jz4760.h>
 #endif
 
+#ifdef CONFIG_JZ4760B
+#include <asm/jz4760b.h>
+#endif
+
+#ifdef CONFIG_JZ4770
+#include <asm/jz4770.h>
+#endif
+
+#ifdef CONFIG_JZ4810
+#include <asm/jz4810.h>
+#endif
 
 #endif /* __ASM_JZSOC_H__ */

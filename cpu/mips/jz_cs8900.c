@@ -40,13 +40,19 @@
 #include <malloc.h>
 
 #ifndef CONFIG_FPGA
-#if defined(CONFIG_JZ4740) || defined(CONFIG_JZ4750) || defined(CONFIG_JZ4760)
+
+#if defined(CONFIG_JZ4740) || defined(CONFIG_JZ4750) || defined(CONFIG_JZ4760) || defined(CONFIG_JZ4760B)
+
 #if defined(CONFIG_JZ4740) 
 #include <asm/jz4740.h>
 #elif defined(CONFIG_JZ4750) 
 #include <asm/jz4750.h>
 #elif defined(CONFIG_JZ4760) 
 #include <asm/jz4760.h>
+#elif defined(CONFIG_JZ4760B) 
+#include <asm/jz4760b.h>
+#elif defined(CONFIG_JZ4770) 
+#include <asm/jz4770.h>
 #elif defined(CONFIG_JZ4810) 
 #include <asm/jz4810.h>
 #endif
@@ -385,11 +391,11 @@ int jz_enet_initialize(bd_t *bis)
 	dev->iobase = 0xac000000;
 #endif // !defined(CONFIG_AQUILA)
 
-#elif defined(CONFIG_JZ4760)
+#elif defined(CONFIG_JZ4760) || defined(CONFIG_JZ4760B)
 #define RD_N_PIN (32*0 +16)  //gpa16
 #define WE_N_PIN (32*0 +17)  //gpa17
 
-#ifdef CONFIG_LEPUS
+#if defined(CONFIG_LEPUS) || defined(CONFIG_LEPUS60B)
 #define WAIT_N (32*0 + 27)   //WAIT_N--->gpa27
 #define CS_PIN (32*0 + 26)   //CS6--->gpa26
 
@@ -406,7 +412,7 @@ int jz_enet_initialize(bd_t *bis)
 	__gpio_as_func0(32 * 1 + 3);
 
 
-#ifdef CONFIG_LEPUS
+#if defined(CONFIG_LEPUS) || defined(CONFIG_LEPUS60B)
 	REG_GPIO_PXFUNS(0) = 0x0000ffff;
 	REG_GPIO_PXTRGC(0) = 0x0000ffff;
 	REG_GPIO_PXSELC(0) = 0x0000ffff;

@@ -8,14 +8,14 @@
  * MDDR info
  */
 /* Chip Select */
-#define DDR_CS1EN 0 // CSEN : whether a ddr chip exists 0 - un-used, 1 - used
+#define DDR_CS1EN 1 // CSEN : whether a ddr chip exists 0 - un-used, 1 - used
 #define DDR_CS0EN 1
-#define DDR_DW32 0 /* 0 - 16-bit data width, 1 - 32-bit data width */
+#define DDR_DW32 1/* 0 - 16-bit data width, 1 - 32-bit data width */
 
 /* MDDR paramters */
 #define DDR_ROW 13 /* ROW : 12 to 14 row address */
 #define DDR_COL 9 /* COL :  8 to 10 column address */
-#define DDR_BANK8 0 /* Banks each chip: 0-4bank, 1-8bank */
+#define DDR_BANK8 0 /* Banks each chip: 0-4bank, 1-8bank 0 for falcon fpga, 1 for develop board */
 #define DDR_CL 3 /* CAS latency: 1 to 7 */
 
 /*
@@ -48,3 +48,5 @@
 						  */
 
 #endif /* __MDDR_CONFIG_H */
+
+

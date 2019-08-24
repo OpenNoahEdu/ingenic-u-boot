@@ -23,10 +23,51 @@
 #include <asm/mipsregs.h>
 #include <asm/jz4760.h>
 
-static void nand_gpio_init(void)
+/*
+ * LCD_R0~LCD_R7, LCD_G0~LCD_G7, LCD_B0~LCD_B7,
+ * LCD_PCLK, LCD_HSYNC, LCD_VSYNC, LCD_DE
+ */
+#define __gpio_clear_lcd_24bit()			\
+do {						\
+	REG_GPIO_PXFUNC(2) = 0x0fffffff;	\
+	REG_GPIO_PXTRGC(2) = 0x0fffffff;	\
+	REG_GPIO_PXSELC(2) = 0x0fffffff;	\
+	REG_GPIO_PXDIRS(2) = 0x0fffffff;	\
+	REG_GPIO_PXDATC(2) = 0x0fffffff;	\
+	REG_GPIO_PXPES(2) = 0x0fffffff;		\
+} while (0)
+
+
+#define GPIO_LCD_VCC_EN_N       (32 * 1 + 31) /* GPB31 */
+#define GPIO_LCD_DISP_N         (32 * 5 + 6)
+static void gpio_init(void)
 {
+	volatile int i=10000000;
+	/* set lcd function pin to low to avoid powering up lcd partially. */
+	__gpio_clear_lcd_24bit();
+	__gpio_as_output(GPIO_LCD_DISP_N);
+	__gpio_clear_pin(GPIO_LCD_DISP_N);
+
+	while(i--);
+	__gpio_as_output(GPIO_LCD_VCC_EN_N);
+	__gpio_set_pin(GPIO_LCD_VCC_EN_N);
+	
 	/* For ethernet data line init */
 	__gpio_as_nand_16bit(1);
+
+
+	/*
+	 * Initialize UART1 pins
+	 */
+#if CFG_UART_BASE == UART0_BASE
+	__gpio_as_uart0();
+#elif CFG_UART_BASE == UART1_BASE
+	__gpio_as_uart1();
+#elif CFG_UART_BASE == UART2_BASE
+	__gpio_as_uart2();
+#else /* CFG_UART_BASE == UART1_BASE */
+	__gpio_as_uart3();
+#endif
 }
 
 //----------------------------------------------------------------------
@@ -46,7 +87,7 @@ void board_early_init(void)
 		while(i--);
 	}
 #endif
-	nand_gpio_init();
+	gpio_init();
 }
 
 

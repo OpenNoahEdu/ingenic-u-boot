@@ -1,3 +1,13 @@
+2011-03-14 Benson Yang <hpyang@ingenic.cn>
+	*Modify JZ4760B to implement the NEW mechanism of ECC and SUPPORT 8k nand.*
+
+	Changed files:
+	include/linux/mtd/nand.h
+	cpu/mips/Makefile
+
+	Added file:
+	cpu/mips/jz4760b_nand.c
+
 2010-08-05 Wolfgang Wang <lgwang@ingenic.cn>
 	Add pll1 init for jz4760.
 

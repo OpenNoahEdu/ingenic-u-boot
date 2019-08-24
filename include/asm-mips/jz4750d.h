@@ -3394,7 +3394,8 @@ do {						\
 #define __gpio_as_pwm1()			\
 do {						\
 	REG_GPIO_PXFUNS(5) = 0x00000800;	\
-	REG_GPIO_PXSELC(5) = 0x00000800;	\
+	REG_GPIO_PXTRGC(5) = 0x00000800;	\
+	REG_GPIO_PXSELS(5) = 0x00000800;	\
 	REG_GPIO_PXPES(5) = 0x00000800;		\
 } while (0)
 

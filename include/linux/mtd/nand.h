@@ -69,7 +69,9 @@ extern int nand_read_raw (struct mtd_info *mtd, uint8_t *buf, loff_t from, size_
  * is supported now. If you add a chip with bigger oobsize/page
  * adjust this accordingly.
  */
-#define NAND_MAX_OOBSIZE	64
+#define NAND_MAX_OOBSIZE	512	
+#define NAND_MAX_FREESIZE	512
+#define NAND_MAX_ECC		2048 	// MUST larger than oobsize + freesize
 
 /*
  * Constants for hardware specific CLE/ALE/NCE function
@@ -141,6 +143,9 @@ extern int nand_read_raw (struct mtd_info *mtd, uint8_t *buf, loff_t from, size_
 #define NAND_ECC_HW7_512	9
 /* Hardware ECC 13 byte ECC per 512 Byte data(8-bit BCH) */
 #define NAND_ECC_HW13_512	10
+/* Hardware ECC 13 byte ECC per 512 Byte data(24-bit BCH) */
+#define NAND_ECC_HW39_512	11
+
 
 /*
  * Constants for Hardware ECC

@@ -20,8 +20,8 @@
 /*
  * MDDR controller timing1 register
  */
-#define DDR_tRAS 45 /*tRAS: ACTIVE to PRECHARGE command period to the same bank. */
-#define DDR_tRTP 12 /* 7.5ns READ to PRECHARGE command period. */
+#define DDR_tRAS 42 /*tRAS: ACTIVE to PRECHARGE command period to the same bank. */
+#define DDR_tRTP 18 /* 7.5ns READ to PRECHARGE command period. */
 #define DDR_tRP 18 /* tRP: PRECHARGE command period to the same bank */
 #define DDR_tRCD 18 /* ACTIVE to READ or WRITE command period to the same bank. */
 #define DDR_tRC 60 /* ACTIVE to ACTIVE command period to the same bank.*/
@@ -31,9 +31,9 @@
 /*
  * MDDR controller timing2 register
  */
-#define DDR_tRFC 72 /* ns,  AUTO-REFRESH command period. */
+#define DDR_tRFC 90 /* ns,  AUTO-REFRESH command period. */
 #define DDR_tMINSR 6 /* Minimum Self-Refresh / Deep-Power-Down */
-#define DDR_tXP 3 /* EXIT-POWER-DOWN to next valid command period: 1 to 8 tCK. */
+#define DDR_tXP 1 /* EXIT-POWER-DOWN to next valid command period: 1 to 8 tCK. */
 #define DDR_tMRD 2 /* unit: tCK Load-Mode-Register to next valid command period: 1 to 4 tCK */
 /*
  * MDDR controller refcnt register

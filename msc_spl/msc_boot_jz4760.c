@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston,
  * MA 02111-1307 USA
  */
-
+#include <config.h>
 #include <common.h>
 #include <asm/io.h>
 
@@ -201,7 +201,7 @@ int mmc_block_readm(u32 src, u32 num, u8 *dst)
 	return 0;
 }
 
-#if 0
+#ifdef CONFIG_MSC_TYPE_SD
 static void sd_found(void)
 {
 
@@ -237,7 +237,7 @@ static void sd_found(void)
 	resp = mmc_cmd(6, 0x2, 0x41, MSC_CMDAT_RESPONSE_R1);
 
 }
-#endif
+#else
 
 /* init mmc/sd card we assume that the card is in the slot */
 int  mmc_found(void)
@@ -275,7 +275,7 @@ int  mmc_found(void)
 
 	return 0;
 }
-
+#endif
 
 int  mmc_init(void)
 {
@@ -310,7 +310,11 @@ int  mmc_init(void)
 	}else
 		mmc_found();
 #endif
+#ifndef CONFIG_MSC_TYPE_SD
 	mmc_found();
+#else
+	sd_found();
+#endif
 	return 0;
 }
 

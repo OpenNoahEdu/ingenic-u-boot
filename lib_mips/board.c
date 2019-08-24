@@ -203,7 +203,9 @@ init_fnc_t *init_sequence[] = {
 	init_func_ram,
 	NULL,
 };
-
+#ifdef CFG_JZ_LINUX_RECOVERY
+extern void jz_recovery_handle(void);
+#endif
 
 void board_init_f(ulong bootflag)
 {
@@ -384,6 +386,10 @@ void board_init_r (gd_t *id, ulong dest_addr)
 	env_name_spec += gd->reloc_off;
 #endif
 
+#ifdef CONFIG_POST
+	post_reloc ();
+#endif
+
 	/* configure available FLASH banks */
 	size = flash_init();
 	display_flash_config (size);
@@ -407,6 +413,9 @@ void board_init_r (gd_t *id, ulong dest_addr)
 #endif
 #endif
 
+#ifdef CFG_JZ_LINUX_RECOVERY
+	jz_recovery_handle();
+#endif
 	/* relocate environment function pointers etc. */
 	env_relocate();
 

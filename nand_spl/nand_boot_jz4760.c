@@ -26,8 +26,9 @@
 #include <asm/jz4760.h>
 #endif
 
-#define NEMC_PNCR (EMC_BASE+0x100)
-#define NEMC_PNDR (EMC_BASE+0x104)
+#ifndef CONFIG_AS_USB_BOOT
+#define NEMC_PNCR (NEMC_BASE+0x100)
+#define NEMC_PNDR (NEMC_BASE+0x104)
 #define REG_NEMC_PNCR REG32(NEMC_PNCR)
 #define REG_NEMC_PNDR REG32(NEMC_PNDR)
 
@@ -250,7 +251,7 @@ static int nand_read_page(int page_addr, unsigned char *dst, unsigned char *oobb
 		unsigned int stat;
 
 		__ecc_cnt_dec(2 * ECC_BLOCK + par_size);
-		
+
 
                 /* Enable BCH decoding */
 		REG_BCH_INTS = 0xffffffff;
@@ -282,7 +283,7 @@ static int nand_read_page(int page_addr, unsigned char *dst, unsigned char *oobb
 			}
 			else {
 				unsigned int errcnt = (stat & BCH_INTS_ERRC_MASK) >> BCH_INTS_ERRC_BIT;
-				
+
 				switch (errcnt) {
 				case 8:
 					bch_correct(data_buf, (REG_BCH_ERR3 & BCH_ERR_INDEX_ODD_MASK) >> BCH_ERR_INDEX_ODD_BIT);
@@ -345,6 +346,7 @@ static void nand_load(int offs, int uboot_size, unsigned char *dst)
 
 	__nand_disable();
 }
+#endif	/* CONFIG_AS_USB_BOOT */
 
 void enable_uart_RX_pull_up(void)
 {
@@ -414,6 +416,7 @@ void spl_boot(void)
 {
 	int boot_sel;
 
+#ifndef CONFIG_AS_USB_BOOT
 #ifdef CONFIG_LOAD_UBOOT
 	void (*uboot)(void);
 #else
@@ -423,6 +426,7 @@ void spl_boot(void)
 	static u8 cmdline[256] = CFG_CMDLINE;
 	void (*kernel)(int, char **, char *);
 #endif
+#endif	/* CONFIG_AS_USB_BOOT */
 	/*
 	 * Init hardware
 	 */
@@ -432,7 +436,10 @@ void spl_boot(void)
 //	__cpm_start_bdma();
 	__cpm_start_emc();
 	__cpm_start_ddr();
-
+#ifdef CONFIG_AS_USB_BOOT
+	__cpm_start_bch();
+        __cpm_start_nemc();
+#endif
 	/* enable mdmac's clock */
 	REG_MDMAC_DMACKE = 0x3;
 	gpio_init();
@@ -457,9 +464,13 @@ void spl_boot(void)
 	REG_EMC_PMEMPS1 = EMC_PMEMPS1_INEDQ | EMC_PMEMPS1_INEDQS | EMC_PMEMPS1_SSTL_MODE |
 		EMC_PMEMPS1_STRENGTH_DQS_HALF_DDR1;
 	REG_EMC_PMEMPS2 = EMC_PMEMPS2_STRENGTH_ALL_HALF_DDR1;
-#elif defined(CONFIG_SDRAM_DDR2)
+#elif defined(CONFIG_SDRAM_DDR2) && defined(CONFIG_CYGNUS)
 	REG_EMC_PMEMPS1 = EMC_PMEMPS1_INEDQ | EMC_PMEMPS1_INEDQS | EMC_PMEMPS1_SSTL_MODE |
 		EMC_PMEMPS1_STRENGTH_DQS_HALF_DDR2;
+	REG_EMC_PMEMPS2 = EMC_PMEMPS2_STRENGTH_ALL_HALF_DDR2;
+#elif defined(CONFIG_SDRAM_DDR2) && defined(CONFIG_LEPUS)
+	REG_EMC_PMEMPS1 = EMC_PMEMPS1_INEDQ | EMC_PMEMPS1_INEDQS | EMC_PMEMPS1_SSTL_MODE |
+		EMC_PMEMPS1_STRENGTH_DQS_HALF_DDR2 | EMC_PMEMPS1_STRENGTH_DQ_HALF_DDR2;
 	REG_EMC_PMEMPS2 = EMC_PMEMPS2_STRENGTH_ALL_HALF_DDR2;
 #else
 	REG_EMC_PMEMPS1 = EMC_PMEMPS1_INEDQ | EMC_PMEMPS1_INEDQS |
@@ -471,8 +482,11 @@ void spl_boot(void)
 
 #endif /* ifndef CONFIG_FPGA */
 
+	serial_puts("init ddr controller ......\n");
 	sdram_init();
+	serial_puts("init ddr controller finish!\n");
 
+#ifndef CONFIG_AS_USB_BOOT
 	bus_width = (CFG_NAND_BW8==1) ? 8 : 16;
 	page_size = CFG_NAND_PAGE_SIZE;
 	row_cycle = CFG_NAND_ROW_CYCLE;
@@ -541,5 +555,11 @@ void spl_boot(void)
 	 * Jump to U-Boot image
 	 */
 	(*uboot)();
+#endif
+#else  /* !CONFIG_AS_USB_BOOT */
+	__asm__ (
+		 "li  $31, 0xbfc012e0 \n\t"
+		 "jr  $31 \n\t "
+		 );
 #endif
 }

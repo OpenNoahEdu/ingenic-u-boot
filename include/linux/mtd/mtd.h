@@ -48,13 +48,17 @@ struct mtd_info {
 	u_int32_t flags;
 	u_int32_t size;	 /* Total size of the MTD */
 
-	/* "Major" erase size for the device. Naïve users may take this
+	/* "Major" erase size for the device. NaÃ¯ve users may take this
 	 * to be the only erase size available, or may use the more detailed
 	 * information below if they desire
 	 */
 	u_int32_t erasesize;
 
 	u_int32_t oobblock;  /* Size of OOB blocks (e.g. 512) */
+#if defined(CONFIG_JZ4760B)
+        u_int32_t freesize;  /* Size of free space per page (e.g. 512 1024 etc.) */
+        u_int32_t data_per_page;  /* Size of valid data per page */
+#endif
 	u_int32_t oobsize;   /* Amount of OOB data per block (e.g. 16) */
 	u_int32_t oobavail;  /* Number of bytes in OOB area available for fs  */
 	u_int32_t ecctype;

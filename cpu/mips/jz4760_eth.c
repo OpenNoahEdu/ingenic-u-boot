@@ -29,6 +29,12 @@
 
 #if defined(CONFIG_JZ4760)
 #include <asm/jz4760.h>
+#endif
+
+#if defined(CONFIG_JZ4760B)
+#include <asm/jz4760b.h>
+#endif
+
 
 #include "jz4760_eth.h"
 
@@ -765,4 +771,3 @@ int jz_enet_initialize(bd_t *bis)
 	return 1;
 }
 
-#endif

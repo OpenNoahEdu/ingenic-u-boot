@@ -1,6 +1,6 @@
 #
-# (C) Copyright 2006
-# Ingenic Semiconductor, <jlwei@ingenic.cn>
+# (C) Copyright 2010
+# Ingenic Semiconductor, <cwjia@ingenic.cn>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License as
@@ -19,7 +19,7 @@
 #
 
 #
-# Ingenic's f4760 FPGA board, MIPS32 core
+# Ingenic's f4810 FPGA board, MIPS32 core
 #
 
 sinclude $(OBJTREE)/board/$(BOARDDIR)/config.tmp

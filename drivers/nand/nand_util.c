@@ -316,7 +316,9 @@ int nand_write_opts(nand_info_t *meminfo, const nand_write_options_t *opts)
 	if (!(meminfo->oobsize == 16 && meminfo->oobblock == 512)
 	    && !(meminfo->oobsize == 8 && meminfo->oobblock == 256)
 	    && !(meminfo->oobsize == 64 && meminfo->oobblock == 2048)
-	    && !(meminfo->oobsize == 128 && meminfo->oobblock == 4096)) {
+	    && !(meminfo->oobsize == 128 && meminfo->oobblock == 4096)
+	    && !(meminfo->oobsize == 218 && meminfo->oobblock == 4096)
+	    && !(meminfo->oobsize == 436 && meminfo->oobblock == 8192)) {
 		printf("Unknown flash (not normal NAND)\n");
 		return -1;
 	}
@@ -359,8 +361,14 @@ int nand_write_opts(nand_info_t *meminfo, const nand_write_options_t *opts)
 
 	/* get image length */
 	imglen = opts->length;
+
+#if defined(CONFIG_JZ4760B)
+	pagelen = meminfo->oobblock - meminfo->freesize
+		+ ((opts->writeoob != 0) ? meminfo->oobsize : 0);
+#else
 	pagelen = meminfo->oobblock
 		+ ((opts->writeoob != 0) ? meminfo->oobsize : 0);
+#endif
 
 	/* check, if file is pagealigned */
 	if ((!opts->pad) && ((imglen % pagelen) != 0)) {
@@ -542,13 +550,21 @@ int nand_read_opts(nand_info_t *meminfo, const nand_read_options_t *opts)
 	if (!(meminfo->oobsize == 16 && meminfo->oobblock == 512)
 	    && !(meminfo->oobsize == 8 && meminfo->oobblock == 256)
 	    && !(meminfo->oobsize == 64 && meminfo->oobblock == 2048)
-	    && !(meminfo->oobsize == 128 && meminfo->oobblock == 4096)) {
+	    && !(meminfo->oobsize == 128 && meminfo->oobblock == 4096)
+	    && !(meminfo->oobsize == 218 && meminfo->oobblock == 4096)
+	    && !(meminfo->oobsize == 436 && meminfo->oobblock == 8192)) {
 		printf("Unknown flash (not normal NAND)\n");
 		return -1;
 	}
 
+#if defined(CONFIG_JZ4760B)
+	pagelen = meminfo->oobblock - meminfo->freesize
+		+ ((opts->readoob != 0) ? meminfo->oobsize : 0);
+#else
 	pagelen = meminfo->oobblock
 		+ ((opts->readoob != 0) ? meminfo->oobsize : 0);
+
+#endif
 
 	/* check, if length is not larger than device */
 	if (((imglen / pagelen) * meminfo->oobblock)
@@ -623,13 +639,21 @@ int nand_read_opts(nand_info_t *meminfo, const nand_read_options_t *opts)
 			return -1;
 		}
 
+#if defined(CONFIG_JZ4760B)
+		if (imglen < meminfo->data_per_page) {
+			imglen = meminfo->data_per_page;	
+		}
+		memcpy(buffer, data_buf, meminfo->data_per_page);
+		buffer += meminfo->data_per_page;
+		imglen -= meminfo->data_per_page;
+#else
 		if (imglen < readlen) {
 			readlen = imglen;
 		}
-
 		memcpy(buffer, data_buf, readlen);
 		buffer += readlen;
 		imglen -= readlen;
+#endif
 
 		if (opts->readoob) {
 			result = meminfo->read_oob(meminfo,

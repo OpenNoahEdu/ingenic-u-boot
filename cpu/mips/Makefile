@@ -30,31 +30,45 @@ START	= start.o
 COBJS	= jz4730.o jz4740.o jz5730.o jz_lcd.o jz4740_slcd.o jz4750_lcd.o jz_serial.o jz_eth.o jz_i2c.o \
 	  asc_serial.o au1x00_serial.o au1x00_eth.o au1x00_usb_ohci.o \
 	  cpu.o interrupts.o incaip_clock.o jz_mmc.o jz4730_nand.o jz4740_cpm_test.o \
-	  jz5730_nand.o jz4740_nand.o jz4750_nand.o jz_cs8900.o jz4750.o jz4750_mmc.o \
-	  jz4810.o jz4810_nand.o jz4810_eth.o
+	  jz5730_nand.o jz4740_nand.o jz4750_nand.o jz_cs8900.o ax88796c.o jz4750.o jz4750_mmc.o
 
+# if you use sdram under jz4760 platform,please comment the jz4760_ddr.o
 ifeq ($(CONFIG_CPU_TYPE),4760)
-COBJS	+= jz4760.o jz4760_nand.o jz4760_eth.o
+COBJS	+= jz4760.o jz4760_nand.o jz4760_eth.o jz4760_mmc.o jz4760_ddr.o
+endif
+
+ifeq ($(CONFIG_CPU_TYPE),4760b)
+COBJS	+= jz4760b.o jz4760b_nand.o jz4760_eth.o jz4760_mmc.o jz4760b_ddr.o
+endif
+
+ifeq ($(CONFIG_CPU_TYPE),4770)
+COBJS	+= jz4770.o jz4770_nand.o jz4770_eth.o jz4770_ddr.o
+endif
+
+ifeq ($(CONFIG_CPU_TYPE),4810)
+COBJS	+= jz4810.o jz4810_nand.o jz4810_eth.o jz4810_ddr.o
 endif
 
 ifeq ($(CONFIG_USE_MDDR),y)
-COBJS	+= jz4760_ddr.o
 COBJS	+= jz_mddr_init.o
 endif
 
 ifeq ($(CONFIG_USE_DDR1),y)
-COBJS	+= jz4760_ddr.o
 COBJS	+= jz_ddr1_init.o
 endif
 
 ifeq ($(CONFIG_USE_DDR2),y)
-COBJS	+= jz4760_ddr.o
 COBJS	+= jz_ddr2_init.o
 endif
 
 ifeq ($(CONFIG_USE_SDRAM),y)
 COBJS	+= jz4760_sdram.o
 endif
+
+ifeq ($(CONFIG_JZ_RECOVERY),y)
+COBJS	+= jz_recovery.o boot_msg.o
+endif
+
 
 SOBJS	= incaip_wdt.o cache.o
 

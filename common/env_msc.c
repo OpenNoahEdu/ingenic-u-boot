@@ -38,6 +38,10 @@
 #include <linux/stddef.h>
 #include <malloc.h>
 
+#ifdef CFG_JZ_LINUX_RECOVERY
+extern unsigned int is_jz_linux_recovery;
+#endif
+
 #if ((CONFIG_COMMANDS&(CFG_CMD_ENV|CFG_CMD_MSC)) == (CFG_CMD_ENV|CFG_CMD_MSC))
 #define CMD_SAVEENV
 #elif defined(CFG_ENV_OFFSET_REDUND)
@@ -129,8 +133,15 @@ int saveenv(void)
 	int ret = 0;
 
 	total = CFG_ENV_SIZE;
-
+#ifdef CFG_JZ_LINUX_RECOVERY
+	if(is_jz_linux_recovery)
+		ret = msc_write(CFG_ENV_REVY_OFFSET, (u_char*)env_ptr, total);
+	else
+		ret = msc_write(CFG_ENV_OFFSET, (u_char*)env_ptr, total);
+#else
 	ret = msc_write(CFG_ENV_OFFSET, (u_char*)env_ptr, total);
+#endif
+
 	return ret;
 }
 #endif /* CMD_SAVEENV */
@@ -145,6 +156,13 @@ void env_relocate_spec (void)
 	total = CFG_ENV_SIZE;
 	tmp_env1 = (env_t *) malloc(CFG_ENV_SIZE);
 	msc_read(CFG_ENV_OFFSET, (u_char*) tmp_env1, total);
+
+#ifdef CFG_JZ_LINUX_RECOVERY
+	if(is_jz_linux_recovery){
+		memset(tmp_env1,0,total);
+		msc_read(CFG_ENV_REVY_OFFSET, (u_char*) tmp_env1, total);
+	}
+#endif
 
 	crc1_ok = (crc32(0, tmp_env1->data, ENV_SIZE) == tmp_env1->crc);
 

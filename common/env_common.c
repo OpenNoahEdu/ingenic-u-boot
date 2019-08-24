@@ -65,6 +65,170 @@ uchar (*env_get_char)(int) = env_get_char_init;
 #define XMK_STR(x)	#x
 #define MK_STR(x)	XMK_STR(x)
 
+#ifdef CFG_JZ_LINUX_RECOVERY
+extern unsigned int is_linux_nand_recovery;
+unsigned char default_environment[CONFIG_DEFAULT_ENV_SIZE];
+unsigned char normal_environment[] = {
+#ifdef	CONFIG_BOOTARGS
+	"bootargs="	CONFIG_BOOTARGS			"\0"
+#endif
+#ifdef	CONFIG_BOOTCOMMAND
+	"bootcmd="	CONFIG_BOOTCOMMAND		"\0"
+#endif
+#ifdef	CONFIG_RAMBOOTCOMMAND
+	"ramboot="	CONFIG_RAMBOOTCOMMAND		"\0"
+#endif
+#ifdef	CONFIG_NFSBOOTCOMMAND
+	"nfsboot="	CONFIG_NFSBOOTCOMMAND		"\0"
+#endif
+#if defined(CONFIG_BOOTDELAY) && (CONFIG_BOOTDELAY >= 0)
+	"bootdelay="	MK_STR(CONFIG_BOOTDELAY)	"\0"
+#endif
+#if defined(CONFIG_BAUDRATE) && (CONFIG_BAUDRATE >= 0)
+	"baudrate="	MK_STR(CONFIG_BAUDRATE)		"\0"
+#endif
+#ifdef	CONFIG_LOADS_ECHO
+	"loads_echo="	MK_STR(CONFIG_LOADS_ECHO)	"\0"
+#endif
+#ifdef	CONFIG_ETHADDR
+	"ethaddr="	MK_STR(CONFIG_ETHADDR)		"\0"
+#endif
+#ifdef	CONFIG_ETH1ADDR
+	"eth1addr="	MK_STR(CONFIG_ETH1ADDR)		"\0"
+#endif
+#ifdef	CONFIG_ETH2ADDR
+	"eth2addr="	MK_STR(CONFIG_ETH2ADDR)		"\0"
+#endif
+#ifdef	CONFIG_ETH3ADDR
+	"eth3addr="	MK_STR(CONFIG_ETH3ADDR)		"\0"
+#endif
+#ifdef	CONFIG_IPADDR
+	"ipaddr="	MK_STR(CONFIG_IPADDR)		"\0"
+#endif
+#ifdef	CONFIG_SERVERIP
+	"serverip="	MK_STR(CONFIG_SERVERIP)		"\0"
+#endif
+#ifdef	CFG_AUTOLOAD
+	"autoload="	CFG_AUTOLOAD			"\0"
+#endif
+#ifdef	CONFIG_PREBOOT
+	"preboot="	CONFIG_PREBOOT			"\0"
+#endif
+#ifdef	CONFIG_ROOTPATH
+	"rootpath="	MK_STR(CONFIG_ROOTPATH)		"\0"
+#endif
+#ifdef	CONFIG_GATEWAYIP
+	"gatewayip="	MK_STR(CONFIG_GATEWAYIP)	"\0"
+#endif
+#ifdef	CONFIG_NETMASK
+	"netmask="	MK_STR(CONFIG_NETMASK)		"\0"
+#endif
+#ifdef	CONFIG_HOSTNAME
+	"hostname="	MK_STR(CONFIG_HOSTNAME)		"\0"
+#endif
+#ifdef	CONFIG_BOOTFILE
+	"bootfile="	MK_STR(CONFIG_BOOTFILE)		"\0"
+#endif
+#ifdef	CONFIG_BOOTTYPE
+	"boottype="	MK_STR(CONFIG_BOOTTYPE)	"\0"
+#endif
+
+#ifdef	CONFIG_LOADADDR
+	"loadaddr="	MK_STR(CONFIG_LOADADDR)		"\0"
+#endif
+#ifdef  CONFIG_CLOCKS_IN_MHZ
+	"clocks_in_mhz=1\0"
+#endif
+#if defined(CONFIG_PCI_BOOTDELAY) && (CONFIG_PCI_BOOTDELAY > 0)
+	"pcidelay="	MK_STR(CONFIG_PCI_BOOTDELAY)	"\0"
+#endif
+#ifdef  CONFIG_EXTRA_ENV_SETTINGS
+	CONFIG_EXTRA_ENV_SETTINGS
+#endif
+	"\0"
+};
+unsigned char recovery_environment[] = {
+#ifdef	CONFIG_REVY_BOOTARGS
+	"bootargs="	CONFIG_REVY_BOOTARGS			"\0"
+#endif
+#ifdef	CONFIG_REVY_BOOTCOMMAND
+	"bootcmd="	CONFIG_REVY_BOOTCOMMAND		"\0"
+#endif
+#ifdef	CONFIG_RAMBOOTCOMMAND
+	"ramboot="	CONFIG_RAMBOOTCOMMAND		"\0"
+#endif
+#ifdef	CONFIG_NFSBOOTCOMMAND
+	"nfsboot="	CONFIG_NFSBOOTCOMMAND		"\0"
+#endif
+#if defined(CONFIG_BOOTDELAY) && (CONFIG_BOOTDELAY >= 0)
+	"bootdelay="	MK_STR(CONFIG_BOOTDELAY)	"\0"
+#endif
+#if defined(CONFIG_BAUDRATE) && (CONFIG_BAUDRATE >= 0)
+	"baudrate="	MK_STR(CONFIG_BAUDRATE)		"\0"
+#endif
+#ifdef	CONFIG_LOADS_ECHO
+	"loads_echo="	MK_STR(CONFIG_LOADS_ECHO)	"\0"
+#endif
+#ifdef	CONFIG_ETHADDR
+	"ethaddr="	MK_STR(CONFIG_ETHADDR)		"\0"
+#endif
+#ifdef	CONFIG_ETH1ADDR
+	"eth1addr="	MK_STR(CONFIG_ETH1ADDR)		"\0"
+#endif
+#ifdef	CONFIG_ETH2ADDR
+	"eth2addr="	MK_STR(CONFIG_ETH2ADDR)		"\0"
+#endif
+#ifdef	CONFIG_ETH3ADDR
+	"eth3addr="	MK_STR(CONFIG_ETH3ADDR)		"\0"
+#endif
+#ifdef	CONFIG_IPADDR
+	"ipaddr="	MK_STR(CONFIG_IPADDR)		"\0"
+#endif
+#ifdef	CONFIG_SERVERIP
+	"serverip="	MK_STR(CONFIG_SERVERIP)		"\0"
+#endif
+#ifdef	CFG_AUTOLOAD
+	"autoload="	CFG_AUTOLOAD			"\0"
+#endif
+#ifdef	CONFIG_PREBOOT
+	"preboot="	CONFIG_PREBOOT			"\0"
+#endif
+#ifdef	CONFIG_ROOTPATH
+	"rootpath="	MK_STR(CONFIG_ROOTPATH)		"\0"
+#endif
+#ifdef	CONFIG_GATEWAYIP
+	"gatewayip="	MK_STR(CONFIG_GATEWAYIP)	"\0"
+#endif
+#ifdef	CONFIG_NETMASK
+	"netmask="	MK_STR(CONFIG_NETMASK)		"\0"
+#endif
+#ifdef	CONFIG_HOSTNAME
+	"hostname="	MK_STR(CONFIG_HOSTNAME)		"\0"
+#endif
+#ifdef	CONFIG_BOOTFILE
+	"bootfile="	MK_STR(CONFIG_BOOTFILE)		"\0"
+#endif
+#ifdef	CONFIG_BOOTTYPE_REVY
+	"boottype="	MK_STR(CONFIG_BOOTTYPE_REVY)	"\0"
+#endif
+
+#ifdef	CONFIG_LOADADDR
+	"loadaddr="	MK_STR(CONFIG_LOADADDR)		"\0"
+#endif
+#ifdef  CONFIG_CLOCKS_IN_MHZ
+	"clocks_in_mhz=1\0"
+#endif
+#if defined(CONFIG_PCI_BOOTDELAY) && (CONFIG_PCI_BOOTDELAY > 0)
+	"pcidelay="	MK_STR(CONFIG_PCI_BOOTDELAY)	"\0"
+#endif
+#ifdef  CONFIG_EXTRA_ENV_SETTINGS
+	CONFIG_EXTRA_ENV_SETTINGS
+#endif
+	"\0"
+};
+
+#else /* else  CFG_JZ_LINUX_RECOVERY */
+
 uchar default_environment[] = {
 #ifdef	CONFIG_BOOTARGS
 	"bootargs="	CONFIG_BOOTARGS			"\0"
@@ -140,6 +304,7 @@ uchar default_environment[] = {
 #endif
 	"\0"
 };
+#endif  /* endif  CFG_JZ_LINUX_RECOVERY */
 
 #if defined(CFG_ENV_IS_IN_NAND)		/* Environment is in Nand Flash */
 int default_environment_size = sizeof(default_environment);

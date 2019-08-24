@@ -641,8 +641,11 @@ __convert:
 	REG_DDRC_TIMING2 = ddrc_timing2_reg;
 
 	// James
-	//REG_DDRC_DQS_ADJ = 0x2621;
+#ifdef CONFIG_CYGNUS
+	REG_DDRC_DQS_ADJ = 0x2621;
+#else
 	REG_DDRC_DQS_ADJ = 0x2321;
+#endif
 
 	ddr_mem_init(msel, hl, tsel, quar);
 #endif /* if defined(CONFIG_FPGA) */

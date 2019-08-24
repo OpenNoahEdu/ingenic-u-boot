@@ -659,6 +659,7 @@ static int jz_init(struct eth_device* dev, bd_t * bd)
 //	stat_regs_test();
 //	sal_regs_test();
 
+	__gpio_as_eth();
 	/* Disable interrupts */
 //	printf("_eth_disable_all_irq() ...\n");
 	__eth_disable_all_irq();

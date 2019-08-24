@@ -131,7 +131,7 @@ static inline u32 jz_readl(u32 address)
 #define HARB0_BASE	0xB3000000
 #define	EMC_BASE	0xB3010000
 #define	DDRC_BASE	0xB3020000
-#define	MDMAC_BASE	0xB3030000
+#define	MDMAC_BASE	0xB3420000
 #define	LCD_BASE	0xB3050000
 #define	TVE_BASE	0xB3050000
 #define	SLCD_BASE	0xB3050000
@@ -892,6 +892,8 @@ static inline u32 jz_readl(u32 address)
 #define MDMAC_DMADBR		(MDMAC_BASE + 0x0308) /* DMA doorbell */
 #define MDMAC_DMADBSR		(MDMAC_BASE + 0x030C) /* DMA doorbell set */
 #define MDMAC_DMACKE  		(MDMAC_BASE + 0x0310)
+#define MDMAC_DMACKES  		(MDMAC_BASE + 0x0314)
+#define MDMAC_DMACKEC  		(MDMAC_BASE + 0x0318)
 
 #define REG_MDMAC_DSAR(n)	REG32(MDMAC_DSAR((n)))
 #define REG_MDMAC_DTAR(n)	REG32(MDMAC_DTAR((n)))
@@ -906,7 +908,8 @@ static inline u32 jz_readl(u32 address)
 #define REG_MDMAC_DMADBR	REG32(MDMAC_DMADBR)
 #define REG_MDMAC_DMADBSR	REG32(MDMAC_DMADBSR)
 #define REG_MDMAC_DMACKE     	REG32(MDMAC_DMACKE)
-
+#define REG_MDMAC_DMACKES     	REG32(MDMAC_DMACKES)
+#define REG_MDMAC_DMACKEC     	REG32(MDMAC_DMACKEC)
 
 /*************************************************************************
  * DMAC (DMA Controller)
@@ -1138,7 +1141,7 @@ static inline u32 jz_readl(u32 address)
 #define REG_GPIO_PXINTS(n)	REG32(GPIO_PXINTS((n)))
 #define REG_GPIO_PXINTC(n)	REG32(GPIO_PXINTC((n)))
 #define REG_GPIO_PXMASK(n)	REG32(GPIO_PXMASK((n)))   /* 1: mask pin interrupt */
-#define REG_GPIO_PXMASKS(n)	REG32(GPIO_PXMASKS(((n)))
+#define REG_GPIO_PXMASKS(n)	REG32(GPIO_PXMASKS((n)))
 #define REG_GPIO_PXMASKC(n)	REG32(GPIO_PXMASKC((n)))
 #define REG_GPIO_PXPAT1(n)	REG32(GPIO_PXPAT1((n)))   /* 1: disable pull up/down */
 #define REG_GPIO_PXPAT1S(n)	REG32(GPIO_PXPAT1S((n)))
@@ -2158,6 +2161,11 @@ static inline u32 jz_readl(u32 address)
 #define DDRC_MMAP0	(DDRC_BASE + 0x24) /* DDR Memory Map Config Register */
 #define DDRC_MMAP1	(DDRC_BASE + 0x28) /* DDR Memory Map Config Register */
 #define DDRC_MDELAY	(DDRC_BASE + 0x2c) /* DDR Memory Map Config Register */
+#define DDRC_CKEL	(DDRC_BASE + 0x30) /* DDR CKE Low if it was set to 0 */
+#define DDRC_PMEMPS0	(DDRC_BASE + 0x50)
+#define DDRC_PMEMPS1	(DDRC_BASE + 0x54)
+#define DDRC_PMEMPS2	(DDRC_BASE + 0x58)
+#define DDRC_PMEMPS3	(DDRC_BASE + 0x5c)
 
 /* DDRC Register */
 #define REG_DDRC_ST		REG32(DDRC_ST)
@@ -2172,6 +2180,11 @@ static inline u32 jz_readl(u32 address)
 #define REG_DDRC_MMAP0		REG32(DDRC_MMAP0)
 #define REG_DDRC_MMAP1		REG32(DDRC_MMAP1)
 #define REG_DDRC_MDELAY		REG32(DDRC_MDELAY)
+#define REG_DDRC_CKEL		REG32(DDRC_CKEL)
+#define REG_DDRC_PMEMPS0	REG32(DDRC_PMEMPS0)
+#define REG_DDRC_PMEMPS1	REG32(DDRC_PMEMPS1)
+#define REG_DDRC_PMEMPS2	REG32(DDRC_PMEMPS2)
+#define REG_DDRC_PMEMPS3	REG32(DDRC_PMEMPS3)
 
 /* DDRC Status Register */
 #define DDRC_ST_ENDIAN	(1 << 7) /* 0 Little data endian
@@ -2453,7 +2466,7 @@ static inline u32 jz_readl(u32 address)
   #define DDRC_TIMING1_TWTR_4		(3 << DDRC_TIMING1_TWTR_BIT)
 
 /* DDRC Timing Config Register 2 */
-#define DDRC_TIMING2_TRFC_BIT         12 /* AUTO-REFRESH command period. */
+#define DDRC_TIMING2_TRFC_BIT         24 /* AUTO-REFRESH command period. */
 #define DDRC_TIMING2_TRFC_MASK        (0xf << DDRC_TIMING2_TRFC_BIT)
 #define DDRC_TIMING2_TMINSR_BIT       8  /* Minimum Self-Refresh / Deep-Power-Down time */
 #define DDRC_TIMING2_TMINSR_MASK      (0xf << DDRC_TIMING2_TMINSR_BIT)
@@ -2476,6 +2489,7 @@ static inline u32 jz_readl(u32 address)
 #define DDRC_DQS_READY                (1 << 28) /* ahb_clk Delay Detect READY, read-only. */
 #define DDRC_DQS_AUTO                 (1 << 23) /* Hardware auto-detect & set delay line */
 #define DDRC_DQS_DET                  (1 << 24) /* Start delay detecting. */
+#define DDRC_DQS_SRDET                (1 << 25) /* Hardware auto-redetect & set delay line. */
 #define DDRC_DQS_CLKD_BIT             16 /* CLKD is reference value for setting WDQS and RDQS.*/
 #define DDRC_DQS_CLKD_MASK            (0x7f << DDRC_DQS_CLKD_BIT) 
 #define DDRC_DQS_WDQS_BIT             8  /* Set delay element number to write DQS delay-line. */
@@ -2507,7 +2521,15 @@ static inline u32 jz_readl(u32 address)
 
 
 #define DDRC_MDELAY_MAUTO_BIT (6)
-#define DDRC_MDELAY_MAUTO  (1 << DDRC_MDELAY_MAUTO_BIT)  
+#define DDRC_MDELAY_MAUTO  (1 << DDRC_MDELAY_MAUTO_BIT)
+#define DDR_GET_VALUE(x, y)			      \
+({						      \
+	unsigned long value, tmp;	              \
+	tmp = x * 1000;				      \
+	value = (tmp % y == 0) ? (tmp / y) : (tmp / y + 1); \
+		value;                                \
+})
+  
 /*************************************************************************
  * CIM
  *************************************************************************/
@@ -3458,9 +3480,9 @@ static inline u32 jz_readl(u32 address)
 #define BCH_CNT_ENC_MASK         (0x7ff << BCH_CNT_ENC_BIT)
 
 /* BCH Error Report Register */
-#define BCH_ERR_INDEX_ODD_BIT    0
+#define BCH_ERR_INDEX_ODD_BIT    16
 #define BCH_ERR_INDEX_ODD_MASK   (0x1fff << BCH_ERR_INDEX_ODD_BIT)
-#define BCH_ERR_INDEX_EVEN_BIT   16
+#define BCH_ERR_INDEX_EVEN_BIT   0
 #define BCH_ERR_INDEX_EVEN_MASK  (0x1fff << BCH_ERR_INDEX_EVEN_BIT)
 
 //----------------------------------------------------------------------
@@ -3742,21 +3764,30 @@ do {						\
 
 #define __gpio_as_eth()				\
 do {						\
-	REG_GPIO_PXFUNS(3) = 0x0001ffff;	\
-	REG_GPIO_PXTRGC(3) = 0x0001ffff;	\
-	REG_GPIO_PXSELC(3) = 0x0001ffff;	\
-	REG_GPIO_PXPES(3) = 0x0001ffff;		\
+	REG_GPIO_PXINTC(1) =  0x00000010;	\
+	REG_GPIO_PXMASKC(1) = 0x00000010;	\
+	REG_GPIO_PXPAT1S(1) = 0x00000010;	\
+	REG_GPIO_PXPAT0C(1) = 0x00000010;	\
+	REG_GPIO_PXINTC(3) =  0x3c000000;	\
+	REG_GPIO_PXMASKC(3) = 0x3c000000;	\
+	REG_GPIO_PXPAT1C(3) = 0x3c000000;	\
+	REG_GPIO_PXPAT0S(3) = 0x3c000000;	\
+	REG_GPIO_PXINTC(5) =  0xfff0;		\
+	REG_GPIO_PXMASKC(5) = 0xfff0;		\
+	REG_GPIO_PXPAT1C(5) = 0xfff0;		\
+	REG_GPIO_PXPAT0C(5) = 0xfff0;		\
 } while (0)
+
 
 /*
  * UART0_TxD, UART0_RxD
  */
 #define __gpio_as_uart0()			\
 do {						\
-	REG_GPIO_PXINTC(5) = 0x00000005;	\
-	REG_GPIO_PXMASKC(5) = 0x00000005;	\
-	REG_GPIO_PXPAT1C(5) = 0x00000005;	\
-	REG_GPIO_PXPAT0C(5) = 0x00000005;	\
+	REG_GPIO_PXINTC(5) = 0x00000009;	\
+	REG_GPIO_PXMASKC(5) = 0x00000009;	\
+	REG_GPIO_PXPAT1C(5) = 0x00000009;	\
+	REG_GPIO_PXPAT0C(5) = 0x00000009;	\
 } while (0)
 
 
@@ -3786,10 +3817,10 @@ do {						\
  */
 #define __gpio_as_uart1()			\
 do {						\
-	REG_GPIO_PXFUNS(3) = 0x14000000;	\
-	REG_GPIO_PXTRGC(3) = 0x14000000;	\
-	REG_GPIO_PXSELC(3) = 0x14000000;	\
-	REG_GPIO_PXPES(3)  = 0x14000000;	\
+	REG_GPIO_PXINTC(3)  = 0x14000000;	\
+	REG_GPIO_PXMASKC(3) = 0x14000000;	\
+	REG_GPIO_PXPAT1C(3) = 0x14000000;	\
+	REG_GPIO_PXPAT0C(3) = 0x14000000;	\
 } while (0)
 
 /*
@@ -3828,14 +3859,22 @@ do {						\
 /*
  * UART3_TxD, UART3_RxD
  */
-#define __gpio_as_uart3()			\
-do {						\
-	REG_GPIO_PXFUNS(4) = 0x00000028;	\
-	REG_GPIO_PXTRGC(4) = 0x00000028;	\
-	REG_GPIO_PXSELS(4) = 0x00000028;	\
-	REG_GPIO_PXPES(4)  = 0x00000028;	\
-} while (0)
-
+#define __gpio_as_uart3()                       \
+	do {                                    \
+	REG_GPIO_PXINTC(4)  = (0x01<<5);        \
+	REG_GPIO_PXMASKC(4)  = (0x01<<5);        \
+	REG_GPIO_PXPAT1C(4) = (0x01<<5);        \
+  	REG_GPIO_PXPAT0S(4) = (0x01<<5);        \
+	REG_GPIO_PXINTC(3)  = (0x01<<12);       \
+	REG_GPIO_PXMASKC(3)  = (0x01<<12);       \
+	REG_GPIO_PXPAT1C(3) = (0x01<<12);       \
+	REG_GPIO_PXPAT0C(3) = (0x01<<12);       \
+	REG_GPIO_PXINTC(0)  = (0x03<<30);       \
+	REG_GPIO_PXMASKC(0)  = (0x03<<30);       \
+	REG_GPIO_PXPAT1C(0) = (0x03<<30);       \
+	REG_GPIO_PXPAT0C(0) = (0x01<<30);       \
+	REG_GPIO_PXPAT0S(0) = (0x01<<31);       \
+	} while (0)
 /*
  * UART3_TxD, UART3_RxD, UART3_CTS, UART3_RTS
  */
@@ -3850,6 +3889,15 @@ do {						\
 	REG_GPIO_PXPES(4)  = 0x00000328;	\
 }
 
+#define __gpio_as_uart4()                       \
+	do {                                    \
+ 	REG_GPIO_PXINTC(2)  = 0x00100400;    \
+	REG_GPIO_PXMASKC(2)  = 0x00100400;      \
+	REG_GPIO_PXPAT1S(2) = 0x00100400;       \
+	REG_GPIO_PXPAT0C(2) = 0x00100400;       \
+	} while (0)
+
+
 /*
  * SD0 ~ SD7, CS1#, CLE, ALE, FRE#, FWE#, FRB#
  * @n: chip select number(1 ~ 6)
@@ -3857,63 +3905,76 @@ do {						\
 #define __gpio_as_nand_8bit(n)						\
 do {		              						\
 									\
-	REG_GPIO_PXFUNS(0) = 0x002c00ff; /* SD0 ~ SD7, CS1#, FRE#, FWE# */ \
-	REG_GPIO_PXSELC(0) = 0x002c00ff;				\
-	REG_GPIO_PXPES(0) = 0x002c00ff;					\
-	REG_GPIO_PXFUNS(1) = 0x00000003; /* CLE(SA2), ALE(SA3) */	\
-	REG_GPIO_PXSELC(1) = 0x00000003;				\
-	REG_GPIO_PXPES(1) = 0x00000003;					\
+	REG_GPIO_PXINTC(0) = 0x000c00ff; /* SD0 ~ SD7, FRE#, FWE# */    \
+	REG_GPIO_PXMASKC(0) = 0x000c00ff;				\
+	REG_GPIO_PXPAT1C(0) = 0x000c00ff;				\
+	REG_GPIO_PXPAT0C(0) = 0x000c00ff;				\
+	REG_GPIO_PXPENS(0) = 0x000c00ff;				\
 									\
-	REG_GPIO_PXFUNS(0) = 0x00200000 << ((n)-1); /* CSn */		\
-	REG_GPIO_PXSELC(0) = 0x00200000 << ((n)-1);			\
-	REG_GPIO_PXPES(0) = 0x00200000 << ((n)-1);			\
+	REG_GPIO_PXINTC(1) = 0x00000003; /* CLE(SA2), ALE(SA3) */	\
+	REG_GPIO_PXMASKC(1) = 0x00000003;				\
+	REG_GPIO_PXPAT1C(1) = 0x00000003;				\
+	REG_GPIO_PXPAT0C(1) = 0x00000003;				\
+	REG_GPIO_PXPENS(1) = 0x00000003;				\
 									\
- 	REG_GPIO_PXFUNC(0) = 0x00100000; /* FRB#(input) */		\
-	REG_GPIO_PXSELC(0) = 0x00100000;				\
-	REG_GPIO_PXDIRC(0) = 0x00100000;				\
-	REG_GPIO_PXPES(0) = 0x00100000;					\
+	REG_GPIO_PXINTC(0) = 0x00200000 << ((n)-1); /* CSn */		\
+	REG_GPIO_PXMASKC(0) = 0x00200000 << ((n)-1);			\
+	REG_GPIO_PXPAT1C(0) = 0x00200000 << ((n)-1);			\
+	REG_GPIO_PXPAT0C(0) = 0x00200000 << ((n)-1);			\
+	REG_GPIO_PXPENS(0) = 0x00200000 << ((n)-1);			\
+									\
+	REG_GPIO_PXINTC(0) = 0x00100000; /* FRB#(input) */		\
+	REG_GPIO_PXMASKS(0) = 0x00100000;				\
+	REG_GPIO_PXPAT1S(0) = 0x00100000;				\
+	REG_GPIO_PXPENS(0) = 0x00100000;				\
 } while (0)
 
-/*
- * SD0 ~ SD15, CS1#, CLE, ALE, FRE#, FWE#, FRB#
- * @n: chip select number(1 ~ 6)
- */
 #define __gpio_as_nand_16bit(n)						\
 do {		              						\
 									\
-	REG_GPIO_PXFUNS(0) = 0x002cffff; /* SD0 ~ SD15, CS1#, FRE#, FWE# */ \
-	REG_GPIO_PXSELC(0) = 0x002cffff;				\
-	REG_GPIO_PXPES(0) = 0x002cffff;					\
-	REG_GPIO_PXFUNS(1) = 0x00000003; /* CLE(SA2), ALE(SA3) */	\
-	REG_GPIO_PXSELC(1) = 0x00000003;				\
-	REG_GPIO_PXPES(1) = 0x00000003;					\
+	REG_GPIO_PXINTC(0) = 0x000cffff; /* SD0 ~ SD15, FRE#, FWE# */   \
+	REG_GPIO_PXMASKC(0) = 0x000cffff;				\
+	REG_GPIO_PXPAT1C(0) = 0x000cffff;				\
+	REG_GPIO_PXPAT0C(0) = 0x000cffff;				\
+	REG_GPIO_PXPENS(0) = 0x000cffff;				\
 									\
-	REG_GPIO_PXFUNS(0) = 0x00200000 << ((n)-1); /* CSn */		\
-	REG_GPIO_PXSELC(0) = 0x00200000 << ((n)-1);			\
-	REG_GPIO_PXPES(0) = 0x00200000 << ((n)-1);			\
+	REG_GPIO_PXINTC(1) = 0x00000003; /* CLE(SA2), ALE(SA3) */	\
+	REG_GPIO_PXMASKC(1) = 0x00000003;				\
+	REG_GPIO_PXPAT1C(1) = 0x00000003;				\
+	REG_GPIO_PXPAT0C(1) = 0x00000003;				\
+	REG_GPIO_PXPENS(1) = 0x00000003;				\
 									\
- 	REG_GPIO_PXFUNC(0) = 0x00100000; /* FRB#(input) */		\
-	REG_GPIO_PXSELC(0) = 0x00100000;				\
-	REG_GPIO_PXDIRC(0) = 0x00100000;				\
-	REG_GPIO_PXPES(0) = 0x00100000;					\
+	REG_GPIO_PXINTC(0) = 0x00200000 << ((n)-1); /* CSn */		\
+	REG_GPIO_PXMASKC(0) = 0x00200000 << ((n)-1);			\
+	REG_GPIO_PXPAT1C(0) = 0x00200000 << ((n)-1);			\
+	REG_GPIO_PXPAT0C(0) = 0x00200000 << ((n)-1);			\
+	REG_GPIO_PXPENS(0) = 0x00200000 << ((n)-1);			\
+									\
+	REG_GPIO_PXINTC(0) = 0x00100000; /* FRB#(input) */		\
+	REG_GPIO_PXMASKS(0) = 0x00100000;				\
+	REG_GPIO_PXPAT1S(0) = 0x00100000;				\
+	REG_GPIO_PXPENS(0) = 0x00100000;					\
 } while (0)
 
 /*
- * SD0 ~ SD7, SA0 ~ SA5, CS2#, RD#, WR#, WAIT#	
+ * SD0 ~ SD7, SA0 ~ SA5, CS2#, RD#, WR#, WAIT#
  */
 #define __gpio_as_nor()							\
 do {								        \
 	/* SD0 ~ SD7, RD#, WR#, CS2#, WAIT# */				\
-	REG_GPIO_PXFUNS(0) = 0x084300ff;				\
-	REG_GPIO_PXTRGC(0) = 0x084300ff;				\
-	REG_GPIO_PXSELC(0) = 0x084300ff;				\
-	REG_GPIO_PXPES(0) = 0x084300ff;					\
+	REG_GPIO_PXINTC(0) = 0x084300ff;				\
+	REG_GPIO_PXMASKC(0) = 0x084300ff;				\
+	REG_GPIO_PXPAT1C(0) = 0x084300ff;				\
+	REG_GPIO_PXPAT0C(0) = 0x084300ff;				\
+	REG_GPIO_PXPENS(0) = 0x084300ff;				\
 	/* SA0 ~ SA5 */							\
-	REG_GPIO_PXFUNS(1) = 0x0000003f;				\
-	REG_GPIO_PXTRGC(1) = 0x0000003f;				\
-	REG_GPIO_PXSELC(1) = 0x0000003f;				\
-	REG_GPIO_PXPES(1) = 0x0000003f;					\
+	REG_GPIO_PXINTC(1) = 0x0000003f;				\
+	REG_GPIO_PXMASKC(1) = 0x0000003f;				\
+	REG_GPIO_PXPAT1C(1) = 0x0000003f;				\
+	REG_GPIO_PXPAT0C(1) = 0x0000003f;				\
+	REG_GPIO_PXPENS(1) = 0x0000003f;				\
 } while (0)
+
 
 /*
  * LCD_D0~LCD_D7, LCD_PCLK, LCD_HSYNC, LCD_VSYNC, LCD_DE
@@ -4004,38 +4065,18 @@ do {						\
  */
 #define __gpio_as_msc0_4bit()			\
 do {						\
-	REG_GPIO_PXFUNS(2) = 0x38400300;	\
-	REG_GPIO_PXTRGC(2) = 0x38400300;	\
-	REG_GPIO_PXSELS(2) = 0x30400300;	\
-	REG_GPIO_PXSELC(2) = 0x08000000;	\
-	REG_GPIO_PXPES(2)  = 0x38400300;	\
-} while (0)
-
-/*
- * MSC1_CMD, MSC1_CLK, MSC1_D0 ~ MSC1_D3
- */
-#define __gpio_as_msc1_4bit()			\
-do {						\
-	REG_GPIO_PXFUNS(1) = 0xfc000000;	\
-	REG_GPIO_PXTRGC(1) = 0xfc000000;	\
-	REG_GPIO_PXSELC(1) = 0xfc000000;	\
-	REG_GPIO_PXPES(1)  = 0xfc000000;	\
-} while (0)
-
-/* Port B
- * MSC2_CMD, MSC2_CLK, MSC2_D0 ~ MSC2_D3
- */
-#define __gpio_as_msc2_4bit_1()			\
-do {						\
-	REG_GPIO_PXFUNS(1) = 0xf0300000;	\
-	REG_GPIO_PXTRGC(1) = 0xf0300000;	\
-	REG_GPIO_PXSELC(1) = 0xf0300000;	\
-	REG_GPIO_PXPES(1)  = 0xf0300000;	\
+	REG_GPIO_PXINTC(0) = 0x00ec0000;	\
+	REG_GPIO_PXMASKC(0)  = 0x00ec0000;	\
+	REG_GPIO_PXPAT1C(0) = 0x00ec0000;	\
+	REG_GPIO_PXPAT0S(0) = 0x00ec0000;	\
+	REG_GPIO_PXINTC(0) = 0x00100000;	\
+	REG_GPIO_PXMASKC(0)  = 0x00100000;	\
+	REG_GPIO_PXPAT1C(0) = 0x00100000;	\
+	REG_GPIO_PXPAT0C(0) = 0x00100000;	\
 } while (0)
 
 #define __gpio_as_msc 	__gpio_as_msc0_4bit /* default as msc0 4bit */
 #define __gpio_as_msc0 	__gpio_as_msc0_4bit /* msc0 default as 4bit */
-#define __gpio_as_msc1 	__gpio_as_msc1_4bit /* msc1 only support 4bit */
 
 /*
  * TSCLK, TSSTR, TSFRM, TSFAIL, TSDI0~7
@@ -4179,11 +4220,20 @@ do {						\
 
 #define __gpio_get_port(p)	(REG_GPIO_PXPIN(p))
 
-#define __gpio_port_as_output(p, o)		\
+#define __gpio_port_as_output0(p, o)		\
 do {						\
-    REG_GPIO_PXFUNC(p) = (1 << (o));		\
-    REG_GPIO_PXSELC(p) = (1 << (o));		\
-    REG_GPIO_PXDIRS(p) = (1 << (o));		\
+    REG_GPIO_PXINTC(p) = (1 << (o));		\						
+    REG_GPIO_PXMASKS(p) = (1 << (o));		\						
+    REG_GPIO_PXPAT1C(p) = (1 << (o));		\
+    REG_GPIO_PXPAT0C(p) = (1 << (o));		\
+} while (0)
+
+#define __gpio_port_as_output1(p, o)		\
+do {						\
+    REG_GPIO_PXINTC(p) = (1 << (o));		\
+    REG_GPIO_PXMASKS(p) = (1 << (o));		\
+    REG_GPIO_PXPAT1C(p) = (1 << (o));		\
+    REG_GPIO_PXPAT0S(p) = (1 << (o));		\
 } while (0)
 
 #define __gpio_port_as_input(p, o)		\
@@ -4193,12 +4243,20 @@ do {						\
     REG_GPIO_PXDIRC(p) = (1 << (o));		\
 } while (0)
 
-#define __gpio_as_output(n)			\
+#define __gpio_as_output0(n)			\
 do {						\
 	unsigned int p, o;			\
 	p = (n) / 32;				\
 	o = (n) % 32;				\
-	__gpio_port_as_output(p, o);		\
+	__gpio_port_as_output0(p, o);		\
+} while (0)
+
+#define __gpio_as_output1(n)			\
+do {						\
+	unsigned int p, o;			\
+	p = (n) / 32;				\
+	o = (n) % 32;				\
+	__gpio_port_as_output1(p, o);		\
 } while (0)
 
 #define __gpio_as_input(n)			\
@@ -4207,22 +4265,6 @@ do {						\
 	p = (n) / 32;				\
 	o = (n) % 32;				\
 	__gpio_port_as_input(p, o);		\
-} while (0)
-
-#define __gpio_set_pin(n)			\
-do {						\
-	unsigned int p, o;			\
-	p = (n) / 32;				\
-	o = (n) % 32;				\
-	REG_GPIO_PXDATS(p) = (1 << o);		\
-} while (0)
-
-#define __gpio_clear_pin(n)			\
-do {						\
-	unsigned int p, o;			\
-	p = (n) / 32;				\
-	o = (n) % 32;				\
-	REG_GPIO_PXDATC(p) = (1 << o);		\
 } while (0)
 
 #define __gpio_get_pin(n)			\

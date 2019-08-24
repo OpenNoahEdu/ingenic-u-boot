@@ -13,20 +13,8 @@
 #include <asm/io.h>
 #include <command.h>
 
-#if defined(CONFIG_JZ4750) || defined(CONFIG_JZ4750D) || defined(CONFIG_JZ4750L) || defined(CONFIG_JZ4760)
+#include <asm/jzsoc.h>
 
-#if defined(CONFIG_JZ4750)
-#include <asm/jz4750.h>
-#endif
-#if defined(CONFIG_JZ4750D)
-#include <asm/jz4750d.h>
-#endif
-#if defined(CONFIG_JZ4750L)
-#include <asm/jz4750l.h>
-#endif
-#if defined(CONFIG_JZ4760)
-#include <asm/jz4760.h>
-#endif
 #define u32 unsigned int
 #define u16 unsigned short
 #define u8 unsigned char
@@ -410,4 +398,3 @@ U_BOOT_CMD(msc, 5, 1, do_msc,
 	"msc	- MMC/SD sub-system\n",
 	"msc read	- addr off|partition size\n");
 
-#endif	/* CONFIG_JZ4750 CONFIG_JZ4760 ... */

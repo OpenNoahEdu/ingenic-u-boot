@@ -101,7 +101,7 @@ struct nand_oobinfo {
 	uint32_t useecc;
 	uint32_t eccbytes;
 	uint32_t oobfree[8][2];
-	uint32_t eccpos[104]; /* for bch, it should be larger */
+	uint32_t eccpos[512]; /* for bch, it should be larger */
 };
 #endif
 

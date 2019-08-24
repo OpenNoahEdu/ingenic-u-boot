@@ -46,19 +46,25 @@
 #endif
 #ifdef CONFIG_JZ4760
 #include <asm/jz4760.h>
-#endif	
+#endif
+#ifdef CONFIG_JZ4760B
+#include <asm/jz4760b.h>
+#endif
+#ifdef CONFIG_JZ4770
+#include <asm/jz4770.h>
+#endif
 #ifdef CONFIG_JZ4810
 #include <asm/jz4810.h>
-#endif		
+#endif
 #if defined(CONFIG_JZ4750) || defined(CONFIG_JZ4750D) || defined(CONFIG_JZ4750L)
 #define JZ4750_NANDBOOT_CFG0 (0x55555500 | (CFG_NAND_BW8*0xff))
-#define JZ4750_NANDBOOT_CFG1 0x55555555	
+#define JZ4750_NANDBOOT_CFG1 0x55555555
 #define JZ4750_NANDBOOT_CFG2 ((CFG_NAND_PAGE_SIZE==2048)&0xff0000) | ((CFG_NAND_PAGE_SIZE!=512)&0xff00) | ((CFG_NAND_ROW_CYCLE==3)&0xff)
 #endif
 
-#if defined(CONFIG_JZ4760) || defined(CONFIG_JZ4810)
+#if defined(CONFIG_JZ4760) || defined(CONFIG_JZ4760B) || defined(CONFIG_JZ4770) || defined(CONFIG_JZ4810)
 #define JZ4760_NANDBOOT_CFG0 (0x55555500 | (CFG_NAND_BW8*0xff))
-#define JZ4760_NANDBOOT_CFG1 0x55555555	
+#define JZ4760_NANDBOOT_CFG1 0x55555555
 #define JZ4760_NANDBOOT_CFG2 ((CFG_NAND_PAGE_SIZE==2048)&0xff0000) | ((CFG_NAND_PAGE_SIZE!=512)&0xff00) | ((CFG_NAND_ROW_CYCLE==3)&0xff)
 #endif
 
@@ -102,7 +108,7 @@ _start:
 	.word JZ4750_NORBOOT_CFG	/* fetched during NOR Boot */
 #endif
 #endif /* defined(CONFIG_JZ4750) || defined(CONFIG_JZ4750D) || defined(CONFIG_JZ4750L) */
-#if defined(CONFIG_JZ4760) || defined(CONFIG_JZ4810)
+#if defined(CONFIG_JZ4760) || (CONFIG_JZ4760B) || defined(CONFIG_JZ4770) || defined(CONFIG_JZ4810)
 #if defined(CONFIG_NAND_SPL)
 	/* First three words fetched by CPU during NAND Boot */
 	/* First 4 flags fetched by CPU during NAND Boot */
@@ -126,8 +132,14 @@ _start:
 
 	/* buswidth_flag */
 #if (CFG_NAND_BW8 == 1)
+#ifndef	CONFIG_AS_USB_BOOT
 	.word	0x55555555
 	.word	0x55555555
+#else
+	b reset
+	nop
+#endif
+
 	.word	0x55555555
 	.word	0x55555555
 	.word	0x55555555
@@ -143,6 +155,13 @@ _start:
 	.word	0x55555555
 	.word	0x55555555
 #else
+#ifndef	CONFIG_AS_USB_BOOT
+	.word	0xaaaaaaaa
+	.word	0xaaaaaaaa
+#else
+	b reset
+	nop
+#endif
 	.word	0xaaaaaaaa
 	.word	0xaaaaaaaa
 	.word	0xaaaaaaaa
@@ -157,8 +176,6 @@ _start:
 	.word	0xaaaaaaaa
 	.word	0xaaaaaaaa
 	.word	0xaaaaaaaa
-	.word	0xaaaaaaaa
-	.word	0xaaaaaaaa	
 #endif
 	/* rowcycle_flag */
 #if (CFG_NAND_ROW_CYCLE == 3)
@@ -169,7 +186,7 @@ _start:
 	.word	0xaaaaaaaa
 	.word	0xaaaaaaaa
 	.word	0xaaaaaaaa
-	.word	0xaaaaaaaa	
+	.word	0xaaaaaaaa
 #else
 	.word	0x55555555
 	.word	0x55555555
@@ -189,7 +206,7 @@ _start:
 	.word	0x55555555
 	.word	0x55555555
 	.word	0x55555555
-	.word	0x55555555	
+	.word	0x55555555
 #else
 	.word	0xaaaaaaaa
 	.word	0xaaaaaaaa
@@ -198,7 +215,7 @@ _start:
 	.word	0xaaaaaaaa
 	.word	0xaaaaaaaa
 	.word	0xaaaaaaaa
-	.word	0xaaaaaaaa	
+	.word	0xaaaaaaaa
 #endif
 	/* pagesize_flag0 */
 #if ((CFG_NAND_PAGE_SIZE == 512) || (CFG_NAND_PAGE_SIZE == 4096))
@@ -209,7 +226,7 @@ _start:
 	.word	0x55555555
 	.word	0x55555555
 	.word	0x55555555
-	.word	0x55555555	
+	.word	0x55555555
 #else
 	.word	0xaaaaaaaa
 	.word	0xaaaaaaaa
@@ -228,7 +245,7 @@ _start:
 #else
 	.word JZ4760_NORBOOT_CFG
 #endif
-#endif /* CONFIG_JZ4760 || CONFIG_JZ4810 */
+#endif /* CONFIG_JZ4760 || defined(CONFIG_JZ4770) || CONFIG_JZ4810 */
 
 #if !defined(CONFIG_JzRISC)
 	RVECENT(reset,0)	/* U-boot entry point */
@@ -400,6 +417,50 @@ _start:
 #endif /* CONFIG_JzRISC */
 
 reset:
+#if 0
+	/* test on jz4760b */
+	la	t0, GPIO_BASE
+	/* group */
+	li	t1, 0
+	sll	t1, t1, 8
+	li	t2, 1
+	/* index in group, 0 ~ 31 */
+	sll	t2, t2, 25
+
+	/* __gpio_as_output */
+	/* FUNC */
+	addiu	t3, t0,	0x48
+	or	t3, t3, t1
+	sw	t2, 0(t3)
+
+	/* SELC */
+	addiu	t3, t0, 0x58
+	or	t3, t3, t1
+	sw	t2, 0(t3)
+
+	/* DIRS */
+	addiu	t3, t0, 0x64
+	or	t3, t3, t1
+	sw	t2, 0(t3)
+
+1:
+	/* __gpio_set_pin */
+	addiu	t3, t0, 0x14
+	or	t3, t3, t1
+	sw	t2, 0(t3)
+
+	nop;nop;nop;nop;nop;nop;nop;nop
+
+	/* __gpio_clear_pin */
+	addiu	t3, t0, 0x18
+	or	t3, t3, t1
+	sw	t2, 0(t3)
+
+	nop;nop;nop;nop;nop;nop;nop;nop
+
+	b	1b
+	nop
+#endif
 
 #if defined(CONFIG_NAND_SPL) || defined(CONFIG_MSC_SPL) || defined(CONFIG_SPI_SPL) || (!defined(CONFIG_NAND_U_BOOT) && !defined(CONFIG_MSC_U_BOOT) && !defined(CONFIG_SPI_U_BOOT))
 
@@ -437,7 +498,7 @@ reset:
 	nop
 #endif /* CONFIG_JZ4730 */
 
-#ifdef CONFIG_JZ4760
+#if !defined(CONFIG_AS_USB_BOOT) && (defined(CONFIG_JZ4760) || defined(CONFIG_JZ4760B))
 	/*
 	 * Check reset status
 	 */
@@ -447,7 +508,7 @@ reset:
 	bnez	t1, resume_from_sleep
 	nop
 #endif /* CONFIG_JZ4760 */
-	
+
 #if !defined(CONFIG_NAND_SPL) && !defined(CONFIG_MSC_SPL) && !defined(CONFIG_SPI_SPL)
 	/* Clear watch registers.
 	 */
@@ -457,7 +518,7 @@ reset:
 
 	/* STATUS register */
 #ifdef CONFIG_JzRISC
-	/* 
+	/*
 	 * CU0=UM=EXL=IE=0, BEV=ERL=1, IP2~7=1
 	 */
 	li	t0, 0x0040FC04
@@ -583,7 +644,7 @@ reset:
 	j	t9
 	nop
 #else
-#if defined(CONFIG_JZ4760) || defined(CONFIG_JZ4810) 
+#if defined(CONFIG_JZ4760) || defined(CONFIG_JZ4760B) || defined(CONFIG_JZ4770) || defined(CONFIG_JZ4810)
 	/* Sdram will be access when "la sp, 0(t0)", so it should be
 	 * configured before accessing,	but it needn't be configured
 	 * again when nand boot for it has been initialized in spl
@@ -602,7 +663,7 @@ reset:
 	nop;nop;nop;nop;nop;nop;nop;nop
 	b 1b
         nop
-#endif	
+#endif
 #if !defined(CONFIG_NAND_U_BOOT) && !defined(CONFIG_MSC_U_BOOT) && !defined(CONFIG_SPI_U_BOOT)
 #if defined(CONFIG_DDRC)
 	/* config as ddr */
@@ -614,11 +675,11 @@ reset:
 	li	t1, 0x000020f8
 	sw	t1, 0x24(t0)
 #else /* sdram */
-	/* config as sdr */	
+	/* config as sdr */
 	la	t0, DDRC_BASE
 	li	t1, 0x10000000
 	sw	t1, 0x4(t0)
-#endif /*config_ddrc*/	
+#endif /*config_ddrc*/
 #endif
 #endif /* Jz4760 || jz4810 */
 	li	t0, CFG_SDRAM_BASE + CFG_INIT_SP_OFFSET
@@ -874,7 +935,7 @@ resume_from_hibernate:
 
 #endif /* CONFIG_JZ4730 */
 
-#ifdef CONFIG_JZ4760
+#if defined (CONFIG_JZ4760) || defined(CONFIG_JZ4760B)
 
 	/*
 	 * cpu was reset from sleep  mode(when power down p0)
@@ -884,6 +945,13 @@ resume_from_sleep:
 	/*
 	 * jump to resume entry point
 	 */
+#if defined(CONFIG_JZ4760B)
+	la	t0, 0xB3020050
+	li	t1, 0x0000ff00
+	nop
+	sw	t1, 0(t0)
+	nop
+#endif	
 	la	t0, CPM_CPSPR
 	lw	t1, 0(t0)
 	li	t0, 0x80000000

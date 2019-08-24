@@ -4212,10 +4212,10 @@ do {						\
  */
 #define __gpio_as_uart0()			\
 do {						\
-	REG_GPIO_PXFUNS(5) = 0x00000005;	\
-	REG_GPIO_PXTRGC(5) = 0x00000005;	\
-	REG_GPIO_PXSELC(5) = 0x00000005;	\
-	REG_GPIO_PXPES(5) = 0x00000005;		\
+	REG_GPIO_PXFUNS(5) = 0x00000009;	\
+	REG_GPIO_PXTRGC(5) = 0x00000009;	\
+	REG_GPIO_PXSELC(5) = 0x00000009;	\
+	REG_GPIO_PXPES(5) = 0x00000009;		\
 } while (0)
 
 
@@ -4471,6 +4471,26 @@ do {						\
 /*
  * MSC0_CMD, MSC0_CLK, MSC0_D0 ~ MSC0_D3
  */
+
+#define __gpio_as_msc0_8bit()			\
+do {						\
+	REG_GPIO_PXFUNS(4) = 0x3ff00000;	\
+	REG_GPIO_PXTRGC(4) = 0x3ff00000;	\
+	REG_GPIO_PXSELC(4) = 0x3ff00000;	\
+	REG_GPIO_PXPES(4)  = 0x3ff00000;	\
+} while (0)
+
+/*
+ * MSC0_CMD, MSC0_CLK, MSC0_D0 ~ MSC0_D3
+ */
+#define __gpio_as_msc0_4bit()			\
+do {						\
+	REG_GPIO_PXFUNS(4) = 0x30f00000;	\
+	REG_GPIO_PXTRGC(4) = 0x30f00000;	\
+	REG_GPIO_PXSELC(4) = 0x30f00000;	\
+	REG_GPIO_PXPES(4)  = 0x30f00000;	\
+} while (0)
+
 #define __gpio_as_msc0_boot()			\
 do {						\
 	REG_GPIO_PXFUNS(0) = 0x00ec0000;	\
@@ -4483,9 +4503,18 @@ do {						\
 	REG_GPIO_PXPES(0)  = 0x00100000;	\
 } while (0)
 
+#define __gpio_as_msc1_4bit()			\
+do {						\
+	REG_GPIO_PXFUNS(3) = 0x3f00000;	\
+	REG_GPIO_PXTRGC(3) = 0x3f00000;	\
+	REG_GPIO_PXSELC(3) = 0x3f00000;	\
+	REG_GPIO_PXPES(3)  = 0x3f00000;	\
+} while (0)
+
+
 #define __gpio_as_msc 	__gpio_as_msc0_boot /* default as msc0 4bit */
 #define __gpio_as_msc0 	__gpio_as_msc0_boot /* msc0 default as 4bit */
-
+#define __gpio_as_msc1  __gpio_as_msc1_4bit 
 /*
  * TSCLK, TSSTR, TSFRM, TSFAIL, TSDI0~7
  */
@@ -5032,6 +5061,19 @@ do {						\
 #define __cpm_enable_osc_in_sleep()	(REG_CPM_OPCR |= CPM_OPCR_OSC_ENABLE)
 #define __cpm_select_rtcclk_rtc()	(REG_CPM_OPCR |= CPM_OPCR_ERCS)
 #define __cpm_select_rtcclk_exclk()	(REG_CPM_OPCR &= ~CPM_OPCR_ERCS)
+
+/* CPM scratch pad protected register(CPSPPR) */
+#define CPSPPR_CPSPR_WRITABLE   (0x00005a5a)
+#define RECOVERY_SIGNATURE      0x52454359      /* means "RECY" */
+#define RECOVERY_SIGNATURE_SEC  0x800      /* means "RECY" */
+
+#define __cpm_get_scrpad()	REG_CPM_CPSPR
+#define __cpm_set_scrpad(data)				\
+do {							\
+	REG_CPM_CPSPPR = CPSPPR_CPSPR_WRITABLE;		\
+	REG_CPM_CPSPR = data;				\
+	REG_CPM_CPSPPR = ~CPSPPR_CPSPR_WRITABLE;	\
+} while (0)
 
 
 #ifdef CFG_EXTAL
