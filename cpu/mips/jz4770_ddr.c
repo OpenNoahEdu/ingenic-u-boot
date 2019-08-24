@@ -154,7 +154,7 @@ static int dma_check_result(void *src, void *dst, int size,int print_flag)
 #if 0
 			serial_puts("wrong data at:");
 			serial_put_hex(addr2);
-			serial_puts("data:");
+			serial_puts("exp:");
 			serial_put_hex(data_expect);
 			serial_puts("src");
 			serial_put_hex(dsrc);
@@ -267,6 +267,107 @@ static int ddr_dma_test(int print_flag)
 	return err;
 }
 
+static int ddr_dma_test_all() {
+	int i, err = 0, banks, blocks;
+	int times;
+	unsigned int addr, DDR_DMA0_SRC, DDR_DMA0_DST, DDR_DMA1_SRC, DDR_DMA1_DST;
+	volatile unsigned int tmp;
+	register unsigned int cpu_clk;
+	long int memsize, banksize, testsize;
+
+	banks = (DDR_BANK8 ? 8 : 4) *(DDR_CS0EN + DDR_CS1EN);
+	memsize = initdram(0);
+	if (memsize > EMC_LOW_SDRAM_SPACE_SIZE)
+		memsize = EMC_LOW_SDRAM_SPACE_SIZE;
+	//dprintf("memsize = 0x%08x\n", memsize);
+	banksize = memsize/banks;
+	testsize = banksize;
+
+	serial_puts("banks:");
+	serial_put_hex(banks);
+	serial_puts("banksize:");
+	serial_put_hex(banksize);
+
+	int src_bank = 0;
+	int dst_bank = 4;
+
+do_test:
+	serial_puts("===>do_test\n");
+	/* bank0 --> bank2 */
+	DDR_DMA0_SRC = DDR_DMA_BASE + banksize * src_bank;
+	DDR_DMA0_DST = DDR_DMA_BASE + banksize * dst_bank;
+
+	cpu_clk = CFG_CPU_SPEED;
+
+	addr = DDR_DMA0_SRC;
+
+	for (i = 0; i < testsize; i += 4) {
+		*(volatile unsigned int *)(addr + i) = gen_verify_data(i);
+	}
+
+#if 1
+	for (i = 0; i < testsize; i+= 4) {
+		if ((*(volatile unsigned int *)(addr + i)) != gen_verify_data(i))
+			serial_puts("wrong data\n");
+	}
+	if (i == testsize)
+		serial_puts("cpu write ok!!\n");
+#endif
+
+	REG_DMAC_DMACR(0) = 0;
+
+	/* Init target buffer */
+	jzmemset((void *)DDR_DMA0_DST, 0, testsize);
+	dma_nodesc_test(0, DDR_DMA0_SRC, DDR_DMA0_DST, testsize);
+
+	REG_DMAC_DMACR(0) = DMAC_DMACR_DMAE; /* global DMA enable bit */
+
+	while(REG_DMAC_DTCR(0));
+	serial_puts("===>DMA finish!\n");
+
+	tmp = (cpu_clk / 1000000) * 1;
+	while (tmp--);
+
+	serial_puts("===>check result ...\n");
+	err = dma_check_result((void *)DDR_DMA0_SRC, (void *)DDR_DMA0_DST, testsize, 1);
+
+	//REG_DMAC_DCCSR(0) &= ~DMAC_DCCSR_EN;  /* disable DMA */
+	REG_DMAC_DMACR(0) = 0;
+	REG_DMAC_DCCSR(0) = 0;
+	REG_DMAC_DCMD(0) = 0;
+	REG_DMAC_DRSR(0) = 0;
+
+	if (err != 0) {
+		serial_puts("=====test all error!!!===\n");
+		serial_put_hex(src_bank);
+		serial_put_hex(dst_bank);
+		serial_puts("======end=======\n");
+		return err;
+	}
+
+#ifdef CONFIG_SDRAM_MDDR
+	if (dst_bank == 3) {
+		serial_puts("===>everything is ok!\n");
+		return 0;
+	}
+#else
+	if (dst_bank == 7) {
+		serial_puts("===>everything is ok!\n");
+		return 0;
+	}
+#endif
+
+	src_bank++;
+	dst_bank++;
+	serial_puts("===>goto next test\n");
+	goto do_test;
+
+	/* bank1 --> bank3 */
+
+	serial_puts("===>everything is ok!\n");
+	return 0;
+}
+
 #define DEF_DDR_CVT 0
 #define DDR_USE_FIRST_ARGS 0
 /* DDR sdram init */
@@ -302,7 +403,9 @@ void sdram_init(void)
 	ps = 7500;
 //	ns = 7;
 #else
+//	mem_clk = 72000000;
 	mem_clk = __cpm_get_mclk();
+	//serial_put_hex(mem_clk);
 	ps = 1000000000 / (mem_clk / 1000); /* ns per tck ns <= real value */
 	//ns = 1000000000 / mem_clk; /* ns per tck ns <= real value */
 #endif /* if defined(CONFIG_FPGA) */
@@ -426,13 +529,13 @@ __convert:
 
 			REG_DDRC_CTRL = 0x0;
 #if defined(CONFIG_SDRAM_DDR2)
-			REG_DDRC_PMEMPS0 = 0xff00;
-			REG_DDRC_PMEMPS1 = 0xff015555;
-			REG_DDRC_PMEMPS2 = 0x55555;
+			REG_DDRC_PMEMCTRL0 = 0xff00;
+			REG_DDRC_PMEMCTRL1 = 0xff015555;
+			REG_DDRC_PMEMCTRL2 = 0x55555;
 #elif defined(CONFIG_SDRAM_MDDR)
-			REG_DDRC_PMEMPS0 = 0xff00;
-			REG_DDRC_PMEMPS1 = 0xff000000;
-			REG_DDRC_PMEMPS2 = 0;
+			REG_DDRC_PMEMCTRL0 = 0xff00;
+			REG_DDRC_PMEMCTRL1 = 0xff000000;
+			REG_DDRC_PMEMCTRL2 = 0;
 #endif
 			REG_DDRC_TIMING1 = ddrc_timing1_reg;
 			REG_DDRC_TIMING2 = ddrc_timing2_reg;
@@ -545,13 +648,13 @@ __convert:
 
 	REG_DDRC_CTRL = 0x0;
 #if defined(CONFIG_SDRAM_DDR2)
-			REG_DDRC_PMEMPS0 = 0xff00;
-			REG_DDRC_PMEMPS1 = 0xff015555;
-			REG_DDRC_PMEMPS2 = 0x55555;
+			REG_DDRC_PMEMCTRL0 = 0xff00;
+			REG_DDRC_PMEMCTRL1 = 0xff015555;
+			REG_DDRC_PMEMCTRL2 = 0x55555;
 #elif defined(CONFIG_SDRAM_MDDR)
-			REG_DDRC_PMEMPS0 = 0xff00;
-			REG_DDRC_PMEMPS1 = 0xff000000;
-			REG_DDRC_PMEMPS2 = 0;
+			REG_DDRC_PMEMCTRL0 = 0xff00;
+			REG_DDRC_PMEMCTRL1 = 0xff000000;
+			REG_DDRC_PMEMCTRL2 = 0;
 #endif
 	REG_DDRC_TIMING1 = ddrc_timing1_reg;
 	REG_DDRC_TIMING2 = ddrc_timing2_reg;
@@ -566,7 +669,7 @@ __convert:
 	int j, index, quar;
 	int mem_index[MAX_DELAY_VALUES];
 	jzmemset(mem_index, 0, MAX_DELAY_VALUES);
-	for (i = 1; i < MAX_TSEL_VALUE; i ++) {
+	for (i = 2; i < MAX_TSEL_VALUE; i ++) {
 		tsel = i;
 		for (j = 0; j < MAX_DELAY_VALUES; j++) {
 			msel = j / 4;
@@ -582,15 +685,20 @@ __convert:
 
 			REG_DDRC_CTRL = 0x0;
 #if defined(CONFIG_SDRAM_DDR2)
-			REG_DDRC_PMEMPS0 = 0xff00;
-			REG_DDRC_PMEMPS1 = 0xff015555;
-			REG_DDRC_PMEMPS2 = 0x55555;
+			REG_DDRC_PMEMCTRL0 =  0xaaaa; /* FIXME: ODT registers not configed */
+			REG_DDRC_PMEMCTRL2 = 0xaaaa;
+			REG_DDRC_PMEMCTRL3 &= ~(1 << 16);
+			REG_DDRC_PMEMCTRL3 |= (1 << 17);
+#if defined(CONFIG_DDR2_DIFFERENTIAL)
+			REG_DDRC_PMEMCTRL3 &= ~(1 << 15);
+#endif
+
 #elif defined(CONFIG_SDRAM_MDDR)
-			REG_DDRC_PMEMPS0 = 0xff00;
-			REG_DDRC_PMEMPS1 = 0xff000000;
-			REG_DDRC_PMEMPS2 = 0;
+			//REG_DDRC_PMEMCTRL0 = 0x0; /* FIXME: ODT registers not configed */
+			REG_DDRC_PMEMCTRL3 |= (1 << 16);
 #endif
 			REG_DDRC_TIMING1 = ddrc_timing1_reg;
+
 			REG_DDRC_TIMING2 = ddrc_timing2_reg;
 
 			ddr_mem_init(msel, hl, tsel, quar);
@@ -647,17 +755,20 @@ __convert:
 		if (num > 0)
 			break;
 	}
-	if (tsel == 3 && num == 0)
+	if (tsel == 3 && num == 0) {
 		serial_puts("\n\nDDR INIT ERROR: can't find a suitable mask delay.\n");
+	}
 	index = 0;
 	for (i = 0; i < num; i++) {
 		index += mem_index[i];
 	}
 	if (num)
 		index /= num;
+/*
 	serial_puts("X");
 	serial_put_hex(index);
 	serial_put_hex(tsel);
+*/
 	msel = index/4;
 	hl = ((index / 2) & 1) ^ 1;
 	quar = index & 1;
@@ -670,20 +781,24 @@ __convert:
 
 	REG_DDRC_CTRL = 0x0;
 #if defined(CONFIG_SDRAM_DDR2)
-			REG_DDRC_PMEMPS0 = 0xff00;
-			REG_DDRC_PMEMPS1 = 0xff015555;
-			REG_DDRC_PMEMPS2 = 0x55555;
+	REG_DDRC_PMEMCTRL0 =  0xaaaa; /* FIXME: ODT registers not configed */
+	REG_DDRC_PMEMCTRL2 = 0xaaaa;
+	REG_DDRC_PMEMCTRL3 &= ~(1 << 16);
+	REG_DDRC_PMEMCTRL3 |= (1 << 17);
+#if defined(CONFIG_DDR2_DIFFERENTIAL)
+	REG_DDRC_PMEMCTRL3 &= ~(1 << 15);
+#endif
+
 #elif defined(CONFIG_SDRAM_MDDR)
-			REG_DDRC_PMEMPS0 = 0xff00;
-			REG_DDRC_PMEMPS1 = 0xff000000;
-			REG_DDRC_PMEMPS2 = 0;
+	REG_DDRC_PMEMCTRL3 |= (1 << 16);
 #endif
 	REG_DDRC_TIMING1 = ddrc_timing1_reg;
 	REG_DDRC_TIMING2 = ddrc_timing2_reg;
 
 	// James
 	//REG_DDRC_DQS_ADJ = 0x2621;
-	REG_DDRC_DQS_ADJ = 0x2321;
+//	REG_DDRC_DQS_ADJ = 0x2321;
+	REG_DDRC_DQS_ADJ = 0x2025;
 
 	ddr_mem_init(msel, hl, tsel, quar);
 #endif /* if defined(CONFIG_FPGA) */
@@ -719,6 +834,9 @@ __convert:
 	/* Wait for number of auto-refresh cycles */
 	tmp_cnt = (cpu_clk / 1000000) * 10;
 	while (tmp_cnt--);
+
+	//serial_puts("start test all mem...\n");
+	//ddr_dma_test_all();
 	ddr_dma_test(1);
 
 #ifdef DEBUG

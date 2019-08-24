@@ -334,9 +334,11 @@ void serial_putc (const char c)
 
 void serial_puts (const char *s)
 {
+//	serial_put_hex((unsigned int)s);
 	while (*s) {
 		serial_putc (*s++);
 	}
+//	serial_put_hex((unsigned int)s);
 }
 
 int serial_getc (void)

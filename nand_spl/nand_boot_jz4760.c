@@ -493,7 +493,8 @@ void spl_boot(void)
 	block_size = CFG_NAND_BLOCK_SIZE;
 	page_per_block =  CFG_NAND_BLOCK_SIZE / CFG_NAND_PAGE_SIZE;
 	bad_block_pos = (page_size == 512) ? 5 : 0;
-	oob_size = page_size / 32;
+//	oob_size = page_size / 32;
+	oob_size = CFG_NAND_OOB_SIZE;
 	ecc_count = page_size / ECC_BLOCK;
 	if (CFG_NAND_BCH_BIT == 8)
 		par_size = 26;

@@ -44,7 +44,7 @@
 #define CONFIG_JZ4760		1  /* Jz4760 SoC */
 
 #ifdef CONFIG_MSC_U_BOOT
-#define CONFIG_MSC_TYPE_SD
+//#define CONFIG_MSC_TYPE_SD
 #endif
 
 /* memory group */

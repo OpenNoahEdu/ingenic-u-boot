@@ -23,8 +23,7 @@
 
 #include <asm/jzsoc.h>
 
-#define BUS_WIDTH    0
-#define BOOT_FROM_P   1
+#define BOOT_FROM_P   0
 /*
  * External routines
  */
@@ -50,16 +49,16 @@ do {						\
 
 static void wait_prg_done(void)
 {
-	while (!(REG_MSC_IREG & MSC_IREG_PRG_DONE))
+	while (!(REG_MSC_STAT & MSC_STAT_PRG_DONE))
 		;
-	REG_MSC_IREG = MSC_IREG_PRG_DONE;	
+	REG_MSC_IREG |= MSC_IREG_PRG_DONE;	
 }
 
 static void wait_tran_done(void)
 {
-	while (!(REG_MSC_IREG & MSC_IREG_DATA_TRAN_DONE))
+	while (!(REG_MSC_STAT & MSC_STAT_DATA_TRAN_DONE))
 		;
-	REG_MSC_IREG = MSC_IREG_DATA_TRAN_DONE;	
+	REG_MSC_IREG |= MSC_IREG_DATA_TRAN_DONE;	
 }
 
 static void mudelay(unsigned int usec)
@@ -83,29 +82,10 @@ static void sd_mdelay(int sdelay)
     mudelay(sdelay * 1000);	
 }
 
-/* Stop the MMC clock and wait while it happens */
-static inline int jz_mmc_stop_clock(void)
-{
-	int timeout = 1000;
-	int wait = 12; /* 1 us */ 
-
-	REG_MSC_STRPCL = MSC_STRPCL_CLOCK_CONTROL_STOP;
-	while (timeout && (REG_MSC_STAT & MSC_STAT_CLK_EN)) {
-		timeout--;
-		if (timeout == 0) {
-			return -1;
-		}
-		wait = 12;
-		while (wait--)
-			;
-	}
-	return 0;
-}
-
 /* Start the MMC clock and operation */
-static inline int jz_mmc_start_clock(void)
+static  int jz_mmc_start_op(void)
 {
-	REG_MSC_STRPCL = MSC_STRPCL_CLOCK_CONTROL_START | MSC_STRPCL_START_OP;
+	REG_MSC_STRPCL = MSC_STRPCL_START_OP;
 	return 0;
 }
 
@@ -115,13 +95,12 @@ static u8 * mmc_cmd(u16 cmd, unsigned int arg, unsigned int cmdat, u16 rtype)
 	u32 timeout = 0x3fffff;
 	int words, i;
 
-	jz_mmc_stop_clock();
 	REG_MSC_CMD   = cmd;
 	REG_MSC_ARG   = arg;
 	REG_MSC_CMDAT = cmdat;
 
 	REG_MSC_IMASK = ~MSC_IMASK_END_CMD_RES;
-	jz_mmc_start_clock();
+	jz_mmc_start_op();
 
 	while (timeout-- && !(REG_MSC_STAT & MSC_STAT_END_CMD_RES))
 		;
@@ -160,12 +139,11 @@ int mmc_block_readm(u32 src, u32 num, u8 *dst)
 	REG_MSC_NOB = num / 512;
 
 	if (highcap) 
-		resp = mmc_cmd(18, src, 0x9, MSC_CMDAT_RESPONSE_R1); // for sdhc card
+		resp = mmc_cmd(18, src, 0x409, MSC_CMDAT_RESPONSE_R1); // for sdhc card
 	else
-		resp = mmc_cmd(18, src * 512, 0x9, MSC_CMDAT_RESPONSE_R1);
+		resp = mmc_cmd(18, src * 512, 0x409, MSC_CMDAT_RESPONSE_R1);
 	nob  = num / 512;
 
-	int save=nob;
 	for (nob; nob >= 1; nob--) {
 		timeout = 0x7ffffff;
 		while (timeout) {
@@ -211,8 +189,7 @@ int mmc_block_readm(u32 src, u32 num, u8 *dst)
 	}
 
 	resp = mmc_cmd(12, 0, 0x41, MSC_CMDAT_RESPONSE_R1);
-//	wait_prg_done();	
-	jz_mmc_stop_clock();
+	wait_tran_done();	
 
 	return 0;
 }
@@ -220,20 +197,15 @@ int mmc_block_readm(u32 src, u32 num, u8 *dst)
 static void config_boot_partition(void)
 {
 
-	if(BUS_WIDTH == 2)
-		mmc_cmd(6, 0x3b30901, 0x441, MSC_CMDAT_RESPONSE_R1);   /* set boot from partition 1 without ACK*/
-	else
-		mmc_cmd(6, 0x3b30901, 0x41, MSC_CMDAT_RESPONSE_R1);   /* set boot from partition 1 without ACK*/		
+	mmc_cmd(6, 0x3b30901, 0x441, MSC_CMDAT_RESPONSE_R1);   /* set boot from partition 1 without ACK*/
 	wait_prg_done();	
 	
-	if(BUS_WIDTH == 2)
-		mmc_cmd(6, 0x3b10101, 0x441, MSC_CMDAT_RESPONSE_R1);   /* set boot bus width -> 4 bit */
-	else
-		mmc_cmd(6, 0x3b10001, 0x41, MSC_CMDAT_RESPONSE_R1);   /* set boot bus width -> 1 bit */
+	mmc_cmd(6, 0x3b10101, 0x441, MSC_CMDAT_RESPONSE_R1);   /* set boot bus width -> 4 bit */
+//	mmc_cmd(6, 0x3b10001, 0x41, MSC_CMDAT_RESPONSE_R1);   /* set boot bus width -> 1 bit */
 	wait_prg_done();	
 }
 
-#if 0
+#ifdef CONFIG_MSC_TYPE_SD
 static void sd_found(void)
 {
 
@@ -269,7 +241,7 @@ static void sd_found(void)
 	resp = mmc_cmd(6, 0x2, 0x41, MSC_CMDAT_RESPONSE_R1);
 
 }
-#endif
+#else
 
 /* init mmc/sd card we assume that the card is in the slot */
 int  mmc_found(void)
@@ -302,22 +274,20 @@ int  mmc_found(void)
 
 	REG_MSC_CLKRT = 1;	/* 16/1 MHz */
 	resp = mmc_cmd(7, 0x10, 0x1, MSC_CMDAT_RESPONSE_R1);
-//	resp = mmc_cmd(6, 0x3b70101, 0x441, MSC_CMDAT_RESPONSE_R1);
+	resp = mmc_cmd(6, 0x3b70101, 0x441, MSC_CMDAT_RESPONSE_R1);
+	wait_prg_done();	
 	
 	if(BOOT_FROM_P)
 		config_boot_partition();
 	
 	return 0;
 }
-
+#endif
 
 int  mmc_init(void)
 {
 	int retries, wait;
 	u8 *resp;
-
-//	REG_CPM_MSCCDR = 13;
-//	REG_CPM_CPCCR |= CPM_CPCCR_CE;
 
 	__gpio_as_msc0_4bit();
 	__msc_reset();
@@ -325,7 +295,8 @@ int  mmc_init(void)
 	MMC_IRQ_MASK();	
 	REG_MSC_CLKRT = 7;    //187k
 	REG_MSC_RDTO = 0xffffffff;
-	
+	REG_MSC_LPM = 0x1;
+
 	/* just for reading and writing, suddenly it was reset, and the power of sd card was not broken off */
 	resp = mmc_cmd(12, 0, 0x41, MSC_CMDAT_RESPONSE_R1);
 
@@ -344,31 +315,14 @@ int  mmc_init(void)
 	}else
 		mmc_found();
 #endif
+
+#ifndef CONFIG_MSC_TYPE_SD
 	mmc_found();
+#else
+	sd_found();
+#endif
+
 	return 0;
-}
-
-void enable_uart_RX_pull_up(void)
-{
-	//UART0
-	REG_GPIO_PXPENC(32 * 5 + 0);
-
-	//UART1
-	REG_GPIO_PXPENC(32 * 3 + 26);
-
-        //UART2
-	REG_GPIO_PXPENC(32 * 2 + 28);
-
-        //UART3
-	REG_GPIO_PXPENC(32 * 3 + 12);
-}
-
-void enable_certain_pull_down(void)
-{
-	int i;
-
-	for(i = 4; i < 12; i++)
-		REG_GPIO_PXPENC(32 * 5 + i);
 }
 
 static void gpio_init(void)
@@ -391,12 +345,6 @@ static void gpio_init(void)
 		__cpm_start_uart3();
 		break;
 	}
-
-	// This function can avoid UART floating, but should not call if UART will be in high frequency.
-	enable_uart_RX_pull_up();
-
-	// This function pulls down the certain GPIO
-	enable_certain_pull_down();
 
 #ifdef CONFIG_FPGA
 	__gpio_as_nor();
@@ -431,15 +379,18 @@ void spl_boot(void)
 	 * Init hardware
 	 */
 
-	__cpm_start_mdma();
+	__cpm_start_dmac();
 	__cpm_start_ddr();
 	/* enable mdmac's clock */
 	REG_MDMAC_DMACKES = 0x3;
 
+	REG_CPM_MSCCDR = CFG_CPU_SPEED/24000000 - 1;
+	REG_CPM_CPCCR |= CPM_CPCCR_CE;
+
 	gpio_init();
 	serial_init();
 
-	serial_puts("\n\nMSC Secondary Program Loader\n");
+//	serial_puts("\n\nMSC Secondary Program Loader\n");
 
 #ifndef CONFIG_FPGA
 	pll_init();
@@ -453,7 +404,7 @@ void spl_boot(void)
 
 	uboot = (void (*)(void))CFG_MSC_U_BOOT_START;
 
-	serial_puts("Starting U-Boot ...\n");
+//	serial_puts("Starting U-Boot ...\n");
 
 	/*
 	 * Flush caches

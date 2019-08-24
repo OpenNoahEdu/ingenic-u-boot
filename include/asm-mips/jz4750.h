@@ -276,7 +276,7 @@ static inline u32 jz_readl(u32 address)
 #define CPM_CPPSR	(CPM_BASE+0x14) /* PLL Switch and Status Register */
 #define CPM_I2SCDR	(CPM_BASE+0x60)
 #define CPM_LPCDR	(CPM_BASE+0x64)
-#define CPM_MSCCDR(n)	(CPM_BASE+0x10*(n)+0x68) /* MSC0(n=0) or MSC1(n=1) device clock divider Register */
+#define CPM_MSCCDR	(CPM_BASE+0x68) /* MSC0(n=0) or MSC1(n=1) device clock divider Register */
 #define CPM_UHCCDR	(CPM_BASE+0x6C)
 #define CPM_SSICDR	(CPM_BASE+0x74)
 #define CPM_PCMCDR	(CPM_BASE+0x7C) /* PCM device clock divider Register */
@@ -292,7 +292,7 @@ static inline u32 jz_readl(u32 address)
 #define REG_CPM_CPPSR	        REG32(CPM_CPPSR)
 #define REG_CPM_I2SCDR  	REG32(CPM_I2SCDR)
 #define REG_CPM_LPCDR   	REG32(CPM_LPCDR)
-#define REG_CPM_MSCCDR(n)	REG32(CPM_MSCCDR(n))
+#define REG_CPM_MSCCDR  	REG32(CPM_MSCCDR)
 #define REG_CPM_UHCCDR   	REG32(CPM_UHCCDR)
 #define REG_CPM_SSICDR  	REG32(CPM_SSICDR)
 #define REG_CPM_PCMCDR          REG32(CPM_PCMCDR)
@@ -1547,13 +1547,14 @@ static inline u32 jz_readl(u32 address)
 #define	MSC_RES			(MSC_BASE + 0x034)
 #define	MSC_RXFIFO		(MSC_BASE + 0x038)
 #define	MSC_TXFIFO		(MSC_BASE + 0x03C)
+#define	MSC_LPM 		(MSC_BASE + 0x040)
 
 #define	REG_MSC_STRPCL		REG16(MSC_STRPCL)
 #define	REG_MSC_STAT		REG32(MSC_STAT)
 #define	REG_MSC_CLKRT		REG16(MSC_CLKRT)
 #define	REG_MSC_CMDAT		REG32(MSC_CMDAT)
 #define	REG_MSC_RESTO		REG16(MSC_RESTO)
-#define	REG_MSC_RDTO		REG16(MSC_RDTO)
+#define	REG_MSC_RDTO		REG32(MSC_RDTO)
 #define	REG_MSC_BLKLEN		REG16(MSC_BLKLEN)
 #define	REG_MSC_NOB		REG16(MSC_NOB)
 #define	REG_MSC_SNOB		REG16(MSC_SNOB)
@@ -1564,6 +1565,7 @@ static inline u32 jz_readl(u32 address)
 #define	REG_MSC_RES		REG16(MSC_RES)
 #define	REG_MSC_RXFIFO		REG32(MSC_RXFIFO)
 #define	REG_MSC_TXFIFO		REG32(MSC_TXFIFO)
+#define	REG_MSC_LPM		REG32(MSC_LPM)
 
 /* MSC Clock and Control Register (MSC_STRPCL) */
 
@@ -3904,7 +3906,7 @@ static inline void __cpm_select_msc_clk(int n, int sd)
 		div = pllout2 / 16000000;
 	}
 
-	REG_CPM_MSCCDR(n) = div - 1;
+	REG_CPM_MSCCDR = div - 1;
 	REG_CPM_CPCCR |= CPM_CPCCR_CE;
 }
 

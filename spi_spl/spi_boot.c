@@ -26,6 +26,8 @@
 #include <asm/jz4750.h>
 #elif defined(CONFIG_JZ4760)
 #include <asm/jz4760.h>
+#elif defined(CONFIG_JZ4770)
+#include <asm/jz4770.h>
 #elif defined(CONFIG_JZ4810)
 #include <asm/jz4810.h>
 #endif
@@ -58,7 +60,7 @@ static inline void spi_disable(void)
 	REG_GPIO_PXPEC(1) = 0x3c000000;
 #elif defined(CONFIG_JZ4760)
 	REG_GPIO_PXPEC(0) = 0x003c0000;
-#else /* CONFIG_JZ4810 */
+#else /* CONFIG_JZ4770 */
 	REG_GPIO_PXPENC(0) = 0x003c0000;	
 #endif
 	REG_SSI_CR0(IDX) &= ~SSI_CR0_SSIE;
@@ -71,7 +73,7 @@ static inline void spi_enable(void)
 	REG_GPIO_PXPES(1)  = 0x3c000000;
 #elif defined(CONFIG_JZ4760)
 	REG_GPIO_PXPES(0) = 0x003c0000;
-#else /* CONFIG_JZ4810 */
+#else /* CONFIG_JZ4770 */
 	REG_GPIO_PXPENS(0) = 0x003c0000;
 #endif
 }
@@ -233,20 +235,24 @@ static int spi_load(int offs, int kernel_size, u8 *dst)
 static void gpio_init(void)
 {
 	/*
-	 * Initialize UART3 pins
+	 * Initialize UART pins
 	 */
 	switch (CFG_UART_BASE) {
 	case UART0_BASE:
 		__gpio_as_uart0();
+		__cpm_start_uart0();
 		break;
 	case UART1_BASE:
 		__gpio_as_uart1();
+		__cpm_start_uart1();
 		break;
 	case UART2_BASE:
 		__gpio_as_uart2();
+		__cpm_start_uart2();
 		break;
 	case UART3_BASE:
 		__gpio_as_uart3();
+		__cpm_start_uart3();
 		break;
 	}
 #ifdef CONFIG_FPGA
@@ -262,8 +268,22 @@ static void gpio_init(void)
 	}
 #endif
 }
-
-
+#if 0
+void display(void)
+{	
+	//test gpio	GPE2
+	volatile int delay;
+	*(volatile unsigned int *)0xb0010418 = 0x4;
+	*(volatile unsigned int *)0xb0010424 = 0x4;
+	*(volatile unsigned int *)0xb0010438 = 0x4;
+	while(1) {
+		for (delay = 0; delay < 10000; delay++);
+		*(volatile unsigned int *)0xb0010444 = 0x4;
+		for (delay = 0; delay < 10000; delay++);
+		*(volatile unsigned int *)0xb0010448 = 0x4;
+	}
+}
+#endif
 void spl_boot(void)
 {
 #ifdef CONFIG_LOAD_UBOOT
@@ -275,10 +295,15 @@ void spl_boot(void)
 	static u8 cmdline[256] = CFG_CMDLINE;
 	void (*kernel)(int, char **, char *);
 #endif
+
 	/*
 	 * Init hardware
 	 */
+#ifdef CONFIG_JZ4770
+	__cpm_start_dmac();
+#else /* CONFIG_JZ4760 */
 	__cpm_start_mdma();
+#endif
 	__cpm_start_ddr();
 	/* enable mdmac's clock */
 	REG_MDMAC_DMACKES = 0x3;

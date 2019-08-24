@@ -271,7 +271,7 @@ static inline u32 jz_readl(u32 address)
 #define CPM_CPPSR	(CPM_BASE+0x14) /* PLL Switch and Status Register */
 #define CPM_I2SCDR	(CPM_BASE+0x60)
 #define CPM_LPCDR	(CPM_BASE+0x64)
-#define CPM_MSCCDR(n)	(CPM_BASE+0x68) /* MSC0(n=0) or MSC1(n=1) device clock divider Register */
+#define CPM_MSCCDR	(CPM_BASE+0x68) /* MSC0(n=0) or MSC1(n=1) device clock divider Register */
 #define CPM_SSICDR	(CPM_BASE+0x74)
 #define CPM_PCMCDR	(CPM_BASE+0x7C) /* PCM device clock divider Register */
 
@@ -286,7 +286,7 @@ static inline u32 jz_readl(u32 address)
 #define REG_CPM_CPPSR	        REG32(CPM_CPPSR)
 #define REG_CPM_I2SCDR  	REG32(CPM_I2SCDR)
 #define REG_CPM_LPCDR   	REG32(CPM_LPCDR)
-#define REG_CPM_MSCCDR(n)	REG32(CPM_MSCCDR(n))
+#define REG_CPM_MSCCDR	        REG32(CPM_MSCCDR)
 #define REG_CPM_SSICDR  	REG32(CPM_SSICDR)
 #define REG_CPM_PCMCDR          REG32(CPM_PCMCDR)
 
@@ -3929,7 +3929,7 @@ static inline void __cpm_select_msc_clk(int n, int sd)
 		div = pllout2 / 16000000;
 	}
 
-	REG_CPM_MSCCDR(n) = div - 1;
+	REG_CPM_MSCCDR = div - 1;
 	REG_CPM_CPCCR |= CPM_CPCCR_CE;
 }
 

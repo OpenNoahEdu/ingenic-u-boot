@@ -1,6 +1,6 @@
 /*
  * (C) Copyright 2008  Ingenic Semiconductor
- * 
+ *
  *  Author: <cwjia@ingenic.cn>
  *
  * This program is free software; you can redistribute it and/or
@@ -30,11 +30,11 @@
 #define CONFIG_JzRISC		1  /* JzRISC core */
 #define CONFIG_JZSOC		1  /* Jz SoC */
 #define CONFIG_JZ4770		1  /* Jz4770 SoC */
-#define CONFIG_FPGA		1  /* f4770 is an FPGA board */
+//#define CONFIG_FPGA		1  /* f4770 is an FPGA board */
 #define CONFIG_F4770		1  /* f4770 validation board */
 #define CONFIG_DDRC		1  /* use ddr controller */
 
-#define CONFIG_SDRAM_MDDR
+//#define CONFIG_SDRAM_MDDR
 /* memory group */
 // [MAY CHANGE] RAM
 #ifdef CONFIG_SDRAM_MDDR
@@ -51,16 +51,19 @@
 // [MAY CHANGE] NAND
 #include "asm/jz_mem_nand_configs/NAND_K9GAG08U0M.h"
 
+
 #define JZ4760_NORBOOT_CFG	JZ4760_NORBOOT_8BIT	/* NOR Boot config code */
 
-#define CFG_EXTAL		24000000	/* EXTAL freq: 24MHz */
-#define CFG_CPU_SPEED		CFG_EXTAL*CFG_DIV	/* CPU clock */
+#define CFG_EXTAL		12000000	/* EXTAL freq: 12MHz */
+#define CFG_CPU_SPEED		(336 * 1000000)	/* CPU clock */
 #define CFG_DIV                 2               /* hclk=pclk=CFG_EXTAL,
 						   mclk=CFG_EXTAL/CFG_DIV, just for FPGA board */
 #define	CFG_HZ			(CFG_EXTAL/256) /* incrementer freq */
 
+
+/* this must be included AFTER CFG_EXTAL and CFG_CPU_SPEED */
 #define CFG_UART_BASE  		UART2_BASE	/* Base of the UART channel */
-#define CONFIG_BAUDRATE		9600
+#define CONFIG_BAUDRATE		57600
 #define CFG_BAUDRATE_TABLE	{9600, 19200, 38400, 57600, 115200}
 
 /* allow to overwrite serial and ethaddr */
@@ -75,17 +78,18 @@
 #define CONFIG_BOOTP_MASK	( CONFIG_BOOTP_DEFAUL )
 
 /* this must be included AFTER the definition of CONFIG_COMMANDS (if any) */
+#include "jz4770_common.h"
 #include <cmd_confdefs.h>
 
 // [MAY CHANGE] Boot Arguments
 #define CONFIG_BOOTDELAY	1
 #define CONFIG_BOOTFILE	        "uImage"	/* file to load */
 #if defined(CONFIG_SDRAM_MDDR)
-#define CONFIG_BOOTARGS		"mem=128M console=ttyS2,9600n8 ip=dhcp nfsroot=192.168.3.56:/nfsroot/root26 rw"
+#define CONFIG_BOOTARGS		"mem=64M console=ttyS3,57600n8 ip=off root=/dev/mtdblock2 rw"
 #else
-#define CONFIG_BOOTARGS		"mem=256M console=ttyS2,9600n8 ip=dhcp nfsroot=192.168.3.56:/nfsroot/root26 rw"
+#define CONFIG_BOOTARGS		"mem=256M console=ttyS2,57600n8 ip=off rootfstype=yaffs2 root=/dev/mtdblock2 rw"
 #endif
-#define CONFIG_BOOTCOMMAND	"bootp;setenv serverip 192.168.3.56;tftp;bootm"
+#define CONFIG_BOOTCOMMAND	"nand read 0x80600000 0x400000 0x300000;bootm"
 #define CFG_AUTOLOAD		"n"		/* No autoload */
 
 #define CONFIG_NET_MULTI
@@ -145,8 +149,8 @@
 #endif
 
 #define CFG_NAND_BCH_BIT        8               /* Specify the hardware BCH algorithm for 4770 (4|8) */
-#define CFG_NAND_ECC_POS        3               /* Ecc offset position in oob area, its default value is 3 if it isn't defined. */
-#define CFG_NAND_SMCR1          0x0d444400      /* 0x0fff7700 is slowest */
+#define CFG_NAND_ECC_POS        24               /* Ecc offset position in oob area, its default value is 3 if it isn't defined. */
+#define CFG_NAND_SMCR1          0x11444400      /* 0x0fff7700 is slowest */
 #define CFG_NAND_USE_PN         0               /* Use PN in jz4770 for TLC NAND */
 #define CFG_NAND_BACKUP_NUM     1               /* TODO */
 
@@ -172,8 +176,8 @@
  * from RAM. Therefore it mustn't (re-)configure the SDRAM controller.
  *
  */
-#define CFG_NAND_U_BOOT_DST	0x80100000	/* Load NUB to this addr	*/
-#define CFG_NAND_U_BOOT_START	CFG_NAND_U_BOOT_DST /* Start NUB from this addr	*/
+#define CFG_NAND_U_BOOT_DST	0xa0100000	/* Load NUB to this addr	*/
+#define CFG_NAND_U_BOOT_START	0x80100000 //CFG_NAND_U_BOOT_DST /* Start NUB from this addr	*/
 
 /*
  * Define the partitioning of the NAND chip (only RAM U-Boot is needed here)
@@ -190,7 +194,7 @@
 #ifdef CFG_ENV_IS_IN_NAND
 #define CFG_ENV_SIZE		0x10000
 #define CFG_ENV_OFFSET		(CFG_NAND_U_BOOT_OFFS + CFG_NAND_U_BOOT_SIZE)	/* environment starts here  */
-#define CFG_ENV_OFFSET_REDUND	(CFG_ENV_OFFSET + CFG_ENV_SIZE)
+#define CFG_ENV_OFFSET_REDUND	(CFG_ENV_OFFSET + CFG_NAND_BLOCK_SIZE)
 #endif
 
 /*
@@ -263,7 +267,7 @@
 #define CFG_ICACHE_SIZE		16384
 #define CFG_CACHELINE_SIZE	32
 
-/*====================================================================== 
+/*======================================================================
  * GPIO
  */
 #define GPIO_LCD_PWM   		(32*2+14) /* GPE14 PWM4 */

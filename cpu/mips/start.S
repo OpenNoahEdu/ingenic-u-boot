@@ -245,6 +245,24 @@ _start:
 #else
 	.word JZ4760_NORBOOT_CFG
 #endif
+
+#if 0	/* test gpio */
+	la	$29, GPIO_BASE
+	li	$9, 0x00000004		// GPE2  (32*4+2)
+	sw	$9, 0x418($29)		// PEINTC
+	sw	$9, 0x424($29)		// PEMASKS
+	sw	$9, 0x438($29)		// PEPAT1C
+
+1:
+	sw	$9, 0x444($29)		// PEPAT0S
+	nop;nop;nop;nop;nop;nop;nop;nop
+	sw	$9, 0x448($29)		// PEPAT0C
+	nop;nop;nop;nop;nop;nop;nop;nop
+	b 1b
+        nop
+#endif
+
+
 #endif /* CONFIG_JZ4760 || defined(CONFIG_JZ4770) || CONFIG_JZ4810 */
 
 #if !defined(CONFIG_JzRISC)
@@ -498,7 +516,7 @@ reset:
 	nop
 #endif /* CONFIG_JZ4730 */
 
-#if !defined(CONFIG_AS_USB_BOOT) && (defined(CONFIG_JZ4760) || defined(CONFIG_JZ4760B))
+#if !defined(CONFIG_AS_USB_BOOT) && (defined(CONFIG_JZ4760) || defined(CONFIG_JZ4760B) || defined(CONFIG_JZ4770))
 	/*
 	 * Check reset status
 	 */
@@ -594,14 +612,14 @@ reset:
 	mtc0	zero, CP0_TAGHI
 
 	li	t0, K0BASE
-	ori	t1, t0, CFG_DCACHE_SIZE
+	addu	t1, t0, CFG_DCACHE_SIZE
 1:
 	cache	Index_Store_Tag_D, 0(t0)
 	bne	t0, t1, 1b
 	addiu	t0, t0, CFG_CACHELINE_SIZE
 
 	li	t0, K0BASE
-	ori	t1, t0, CFG_ICACHE_SIZE
+	addu	t1, t0, CFG_ICACHE_SIZE
 2:
 	cache	Index_Store_Tag_I, 0(t0)
 	bne	t0, t1, 2b
@@ -641,6 +659,23 @@ reset:
 #if defined(CONFIG_NAND_SPL) || defined(CONFIG_MSC_SPL) || defined(CONFIG_SPI_SPL)
 	la	sp, 0x80004000
 	la	t9, spl_boot
+
+#if 0	/* test gpio */
+	la	$29, GPIO_BASE
+	li	$9, 0x00000004		// GPE2  (32*4+2)
+	sw	$9, 0x418($29)		// PEINTC
+	sw	$9, 0x424($29)		// PEMASKS
+	sw	$9, 0x438($29)		// PEPAT1C
+
+1:
+	sw	$9, 0x444($29)		// PEPAT0S
+	nop;nop;nop;nop;nop;nop;nop;nop
+	sw	$9, 0x448($29)		// PEPAT0C
+	nop;nop;nop;nop;nop;nop;nop;nop
+	b 1b
+        nop
+#endif
+
 	j	t9
 	nop
 #else
@@ -747,7 +782,7 @@ relocate_code:
 	/* flush d-cache */
 	.set	mips32
 	li	t0, KSEG0
-	addi	t1, t0, CFG_DCACHE_SIZE
+	addu	t1, t0, CFG_DCACHE_SIZE
 2:
 	cache	Index_Writeback_Inv_D, 0(t0)
 	bne	t0, t1, 2b
@@ -757,7 +792,7 @@ relocate_code:
 
 	/* flush i-cache */
 	li	t0, KSEG0
-	addi	t1, t0, CFG_ICACHE_SIZE
+	addu	t1, t0, CFG_ICACHE_SIZE
 3:
 	cache	Index_Invalidate_I, 0(t0)
 	bne	t0, t1, 3b
@@ -864,7 +899,7 @@ resume_from_hibernate:
 	mtc0	zero, CP0_TAGHI
 
 	li	t0, K0BASE
-	ori	t1, t0, CFG_DCACHE_SIZE
+	addu	t1, t0, CFG_DCACHE_SIZE
 1:
 	cache	Index_Store_Tag_D, 0(t0)
 	cache	Index_Store_Tag_I, 0(t0)
@@ -935,7 +970,7 @@ resume_from_hibernate:
 
 #endif /* CONFIG_JZ4730 */
 
-#if defined (CONFIG_JZ4760) || defined(CONFIG_JZ4760B)
+#if defined (CONFIG_JZ4760) || defined(CONFIG_JZ4760B) || defined(CONFIG_JZ4770)
 
 	/*
 	 * cpu was reset from sleep  mode(when power down p0)

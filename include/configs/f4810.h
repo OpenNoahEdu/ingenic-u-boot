@@ -59,7 +59,7 @@
 						   mclk=CFG_EXTAL/CFG_DIV, just for FPGA board */
 #define	CFG_HZ			(CFG_EXTAL/256) /* incrementer freq */
 
-#define CFG_UART_BASE  		UART2_BASE	/* Base of the UART channel */
+#define CFG_UART_BASE  		UART0_BASE	/* Base of the UART channel */
 #define CONFIG_BAUDRATE		9600
 #define CFG_BAUDRATE_TABLE	{9600, 19200, 38400, 57600, 115200}
 

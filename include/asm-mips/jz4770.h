@@ -351,6 +351,7 @@ static inline u32 jz_readl(u32 address)
 #define CPM_GPSCDR		(CPM_BASE+0x80) /* GPS clock divider register		*/
 #define CPM_PCMCDR		(CPM_BASE+0x84) /* PCM device clock divider register	*/
 #define CPM_GPUCDR		(CPM_BASE+0x88) /* GPU clock divider register		*/
+#define CPM_BCHCDR		(CPM_BASE+0xAC) /* BCH clock divider register		*/
 
 #define CPM_LCR			(CPM_BASE+0x04)
 #define CPM_PSWCST(n)		(CPM_BASE+0x4*(n)+0x90)
@@ -380,6 +381,25 @@ static inline u32 jz_readl(u32 address)
 #define REG_CPM_GPSCDR		REG32(CPM_GPSCDR)
 #define REG_CPM_PCMCDR		REG32(CPM_PCMCDR)
 #define REG_CPM_GPUCDR		REG32(CPM_GPUCDR)
+#define REG_CPM_BCHCDR		REG32(CPM_BCHCDR)
+
+
+/* BCH clock divider register */
+#define CPM_BCHCDR_BPCS			(1 << 31)
+#define CPM_BCHCDR_BCHM			(1 << 30) //0: hardware as default, 1: software(must change)
+#define CPM_BCHCDR_BCHDIV_BIT		0
+#define CPM_BCHCDR_BCHDIV_MASK		(0x7 << CPM_BCHCDR_BCHDIV_BIT)
+
+#define __cpm_get_bchdiv(n) \
+	((REG_CPM_BCHCDR(n) & CPM_BCHCDR_BCHDIV_MASK) >> CPM_BCHCDR_BCHDIV_BIT)
+#define __cpm_set_bchdiv(v) \
+	(REG_CPM_BCHCDR = (REG_CPM_BCHCDR & ~CPM_BCHCDR_BCHDIV_MASK) | ((v) << (CPM_BCHCDR_BCHDIV_BIT)))
+#define __cpm_sw_bchm()			\
+        (REG_CPM_BCHCDR |= CPM_BCHCDR_BCHM)
+#define __cpm_hw_bchm()			\
+        (REG_CPM_BCHCDR &= ~CPM_BCHCDR_BCHM)
+
+
 
 #define REG_CPM_LCR	REG32(CPM_LCR)
 #define REG_CPM_CLKGR0	REG32(CPM_CLKGR0)
@@ -390,18 +410,19 @@ static inline u32 jz_readl(u32 address)
 /* Clock control register */
 #define CPM_CPCCR_ECS			(0x01 << 31)
 #define CPM_CPCCR_MEM			(0x01 << 30)
-#define CPM_CPCCR_SDIV_BIT		24
-#define CPM_CPCCR_SDIV_MASK		(0x0f << CPM_CPCCR_SDIV_BIT)
+#define CPM_CPCCR_H1DIV_BIT		24
+#define CPM_CPCCR_H1DIV_MASK		(0x0f << CPM_CPCCR_H1DIV_BIT)
 #define CPM_CPCCR_CE			(0x01 << 22)
 #define CPM_CPCCR_PCS			(0x01 << 21)
 #define CPM_CPCCR_H2DIV_BIT		16
 #define CPM_CPCCR_H2DIV_MASK		(0x0f << CPM_CPCCR_H2DIV_BIT)
-#define CPM_CPCCR_MDIV_BIT		12
-#define CPM_CPCCR_MDIV_MASK		(0x0f << CPM_CPCCR_MDIV_BIT)
+#define CPM_CPCCR_C1DIV_BIT		12
+#define CPM_CPCCR_C1DIV_MASK		(0x0f << CPM_CPCCR_C1DIV_BIT)
 #define CPM_CPCCR_PDIV_BIT		8
 #define CPM_CPCCR_PDIV_MASK		(0x0f << CPM_CPCCR_PDIV_BIT)
-#define CPM_CPCCR_HDIV_BIT		4
-#define CPM_CPCCR_HDIV_MASK		(0x0f << CPM_CPCCR_HDIV_BIT)
+#define CPM_CPCCR_H0DIV_BIT		4
+#define CPM_CPCCR_HDIV_MASK		(0x0f << CPM_CPCCR_H0DIV_BIT)
+#define CPM_CPCCR_H0DIV_MASK		(0x0f << CPM_CPCCR_H0DIV_BIT)
 #define CPM_CPCCR_CDIV_BIT		0
 #define CPM_CPCCR_CDIV_MASK		(0x0f << CPM_CPCCR_CDIV_BIT)
 
@@ -409,7 +430,7 @@ static inline u32 jz_readl(u32 address)
 #define CPM_CPPCR_PLLM_BIT		24
 #define CPM_CPPCR_PLLM_MASK		(0x7f << CPM_CPPCR_PLLM_BIT)
 #define CPM_CPPCR_PLLN_BIT		18
-#define CPM_CPPCR_PLLN_MASK		(0x0f << CPM_CPPCR_PLLN_BIT)
+#define CPM_CPPCR_PLLN_MASK		(0x1f << CPM_CPPCR_PLLN_BIT)
 #define CPM_CPPCR_PLLOD_BIT		16
 #define CPM_CPPCR_PLLOD_MASK		(0x03 << CPM_CPPCR_PLLOD_BIT)
 #define CPM_CPPCR_LOCK0			(1 << 15)
@@ -453,36 +474,36 @@ static inline u32 jz_readl(u32 address)
 
 /* USB parameter control register */
 #define CPM_USBPCR_USB_MODE		(1 << 31)  /* 1: OTG, 0: UDC*/
-#define CPM_USBPCR_AVLD_REG		(1 << 30)  
-#define CPM_USBPCR_IDPULLUP_MASK_BIT	28  
+#define CPM_USBPCR_AVLD_REG		(1 << 30)
+#define CPM_USBPCR_IDPULLUP_MASK_BIT	28
 #define CPM_USBPCR_IDPULLUP_MASK_MASK	(0x02 << IDPULLUP_MASK_BIT)
 #define CPM_USBPCR_INCR_MASK		(1 << 27)
-#define CPM_USBPCR_CLK12_EN		(1 << 26)  
-#define CPM_USBPCR_COMMONONN		(1 << 25)  
-#define CPM_USBPCR_VBUSVLDEXT		(1 << 24)  
-#define CPM_USBPCR_VBUSVLDEXTSEL	(1 << 23)  
-#define CPM_USBPCR_POR			(1 << 22)  
-#define CPM_USBPCR_SIDDQ		(1 << 21)  
-#define CPM_USBPCR_OTG_DISABLE		(1 << 20)  
-#define CPM_USBPCR_COMPDISTUNE_BIT	17  
+#define CPM_USBPCR_CLK12_EN		(1 << 26)
+#define CPM_USBPCR_COMMONONN		(1 << 25)
+#define CPM_USBPCR_VBUSVLDEXT		(1 << 24)
+#define CPM_USBPCR_VBUSVLDEXTSEL	(1 << 23)
+#define CPM_USBPCR_POR			(1 << 22)
+#define CPM_USBPCR_SIDDQ		(1 << 21)
+#define CPM_USBPCR_OTG_DISABLE		(1 << 20)
+#define CPM_USBPCR_COMPDISTUNE_BIT	17
 #define CPM_USBPCR_COMPDISTUNE_MASK	(0x07 << COMPDISTUNE_BIT)
-#define CPM_USBPCR_OTGTUNE_BIT		14  
+#define CPM_USBPCR_OTGTUNE_BIT		14
 #define CPM_USBPCR_OTGTUNE_MASK		(0x07 << OTGTUNE_BIT)
-#define CPM_USBPCR_SQRXTUNE_BIT		11  
+#define CPM_USBPCR_SQRXTUNE_BIT		11
 #define CPM_USBPCR_SQRXTUNE_MASK	(0x7x << SQRXTUNE_BIT)
-#define CPM_USBPCR_TXFSLSTUNE_BIT	7  
+#define CPM_USBPCR_TXFSLSTUNE_BIT	7
 #define CPM_USBPCR_TXFSLSTUNE_MASK	(0x0f << TXFSLSTUNE_BIT)
-#define CPM_USBPCR_TXPREEMPHTUNE	(1 << 6)  
-#define CPM_USBPCR_TXRISETUNE_BIT	4  
+#define CPM_USBPCR_TXPREEMPHTUNE	(1 << 6)
+#define CPM_USBPCR_TXRISETUNE_BIT	4
 #define CPM_USBPCR_TXRISETUNE_MASK	(0x03 << TXRISETUNE_BIT)
-#define CPM_USBPCR_TXVREFTUNE_BIT	0  
+#define CPM_USBPCR_TXVREFTUNE_BIT	0
 #define CPM_USBPCR_TXVREFTUNE_MASK	(0x0f << TXVREFTUNE_BIT)
 
 /* USB reset detect timer register */
-#define CPM_USBRDT_VBFIL_LD_EN		(1 << 25)  
-#define CPM_USBRDT_IDDIG_EN		(1 << 24)  
-#define CPM_USBRDT_IDDIG_REG		(1 << 23)  
-#define CPM_USBRDT_USBRDT_BIT		0  
+#define CPM_USBRDT_VBFIL_LD_EN		(1 << 25)
+#define CPM_USBRDT_IDDIG_EN		(1 << 24)
+#define CPM_USBRDT_IDDIG_REG		(1 << 23)
+#define CPM_USBRDT_USBRDT_BIT		0
 #define CPM_USBRDT_USBRDT_MASK		(0x7fffff << CPM_USBRDT_USBRDT_BIT)
 
 /* USB OTG PHY clock divider register */
@@ -996,7 +1017,7 @@ static inline u32 jz_readl(u32 address)
 #define DMAC_DCCSR_CT		(1 << 1)  /* count terminated */
 #define DMAC_DCCSR_EN		(1 << 0)  /* channel enable bit */
 
-// DMA channel command register 
+// DMA channel command register
 #define DMAC_DCMD_EACKS_LOW  	(1 << 31) /* External DACK Output Level Select, active low */
 #define DMAC_DCMD_EACKS_HIGH  	(0 << 31) /* External DACK Output Level Select, active high */
 #define DMAC_DCMD_EACKM_WRITE 	(1 << 30) /* External DACK Output Mode Select, output in write cycle */
@@ -1696,7 +1717,7 @@ static inline u32 jz_readl(u32 address)
   #define SSI_CR1_FMAT_MW1	  (2 << SSI_CR1_FMAT_BIT) /* National Microwire 1 format */
   #define SSI_CR1_FMAT_MW2	  (3 << SSI_CR1_FMAT_BIT) /* National Microwire 2 format */
 #define SSI_CR1_TTRG_BIT	16 /* SSI1 TX trigger */
-#define SSI_CR1_TTRG_MASK	(0xf << SSI1_CR1_TTRG_BIT) 
+#define SSI_CR1_TTRG_MASK	(0xf << SSI1_CR1_TTRG_BIT)
 #define SSI_CR1_MCOM_BIT	12
 #define SSI_CR1_MCOM_MASK	(0xf << SSI_CR1_MCOM_BIT)
   #define SSI_CR1_MCOM_1BIT	  (0x0 << SSI_CR1_MCOM_BIT) /* 1-bit command selected */
@@ -1779,13 +1800,14 @@ static inline u32 jz_readl(u32 address)
 #define	MSC_RES			(MSC0_BASE + 0x034)
 #define	MSC_RXFIFO		(MSC0_BASE + 0x038)
 #define	MSC_TXFIFO		(MSC0_BASE + 0x03C)
+#define	MSC_LPM 		(MSC0_BASE + 0x040)
 
 #define	REG_MSC_STRPCL		REG16(MSC_STRPCL)
 #define	REG_MSC_STAT		REG32(MSC_STAT)
 #define	REG_MSC_CLKRT		REG16(MSC_CLKRT)
 #define	REG_MSC_CMDAT		REG32(MSC_CMDAT)
 #define	REG_MSC_RESTO		REG16(MSC_RESTO)
-#define	REG_MSC_RDTO		REG16(MSC_RDTO)
+#define	REG_MSC_RDTO		REG32(MSC_RDTO)
 #define	REG_MSC_BLKLEN		REG16(MSC_BLKLEN)
 #define	REG_MSC_NOB		REG16(MSC_NOB)
 #define	REG_MSC_SNOB		REG16(MSC_SNOB)
@@ -1796,6 +1818,7 @@ static inline u32 jz_readl(u32 address)
 #define	REG_MSC_RES		REG16(MSC_RES)
 #define	REG_MSC_RXFIFO		REG32(MSC_RXFIFO)
 #define	REG_MSC_TXFIFO		REG32(MSC_TXFIFO)
+#define	REG_MSC_LPM		REG32(MSC_LPM)
 
 /* MSC Clock and Control Register (MSC_STRPCL) */
 
@@ -1929,7 +1952,7 @@ static inline u32 jz_readl(u32 address)
 #define EMC_PMEMPS1	(EMC_BASE + 0x6004)
 #define EMC_PMEMPS2	(EMC_BASE + 0x6008)
 #define EMC_PMEMPS3	(EMC_BASE + 0x600c)
- 
+
 #define REG_EMC_PMEMPS0	REG32(EMC_PMEMPS0)
 #define REG_EMC_PMEMPS1	REG32(EMC_PMEMPS1)
 #define REG_EMC_PMEMPS2	REG32(EMC_PMEMPS2)
@@ -2162,11 +2185,15 @@ static inline u32 jz_readl(u32 address)
 #define DDRC_MMAP1	(DDRC_BASE + 0x28) /* DDR Memory Map Config Register */
 #define DDRC_MDELAY	(DDRC_BASE + 0x2c) /* DDR Memory Map Config Register */
 #define DDRC_CKEL	(DDRC_BASE + 0x30) /* DDR CKE Low if it was set to 0 */
-#define DDRC_PMEMPS0	(DDRC_BASE + 0x50)
-#define DDRC_PMEMPS1	(DDRC_BASE + 0x54)
-#define DDRC_PMEMPS2	(DDRC_BASE + 0x58)
-#define DDRC_PMEMPS3	(DDRC_BASE + 0x5c)
 
+#define DDRC_PMEMCTRL0	(DDRC_BASE + 0x54)
+#define DDRC_PMEMCTRL1	(DDRC_BASE + 0x50)
+#define DDRC_PMEMCTRL2	(DDRC_BASE + 0x58)
+#define DDRC_PMEMCTRL3	(DDRC_BASE + 0x5c)
+
+/* DDRC Register */
+#define REG_DDRC_ST		REG32(DDRC_ST)
+#define REG_DDRC_CFG		REG32(DDRC_CFG)
 /* DDRC Register */
 #define REG_DDRC_ST		REG32(DDRC_ST)
 #define REG_DDRC_CFG		REG32(DDRC_CFG)
@@ -2181,10 +2208,10 @@ static inline u32 jz_readl(u32 address)
 #define REG_DDRC_MMAP1		REG32(DDRC_MMAP1)
 #define REG_DDRC_MDELAY		REG32(DDRC_MDELAY)
 #define REG_DDRC_CKEL		REG32(DDRC_CKEL)
-#define REG_DDRC_PMEMPS0	REG32(DDRC_PMEMPS0)
-#define REG_DDRC_PMEMPS1	REG32(DDRC_PMEMPS1)
-#define REG_DDRC_PMEMPS2	REG32(DDRC_PMEMPS2)
-#define REG_DDRC_PMEMPS3	REG32(DDRC_PMEMPS3)
+#define REG_DDRC_PMEMCTRL0	REG32(DDRC_PMEMCTRL0)
+#define REG_DDRC_PMEMCTRL1	REG32(DDRC_PMEMCTRL1)
+#define REG_DDRC_PMEMCTRL2	REG32(DDRC_PMEMCTRL2)
+#define REG_DDRC_PMEMCTRL3	REG32(DDRC_PMEMCTRL3)
 
 /* DDRC Status Register */
 #define DDRC_ST_ENDIAN	(1 << 7) /* 0 Little data endian
@@ -2226,14 +2253,17 @@ static inline u32 jz_readl(u32 address)
 
 #define DDRC_CFG_ROW_BIT	10 /* Row Address width. */
 #define DDRC_CFG_ROW_MASK	(0x3 << DDRC_CFG_ROW_BIT)
-  #define DDRC_CFG_ROW_13	(0 << DDRC_CFG_ROW_BIT) /* 13-bit row address is used */
-  #define DDRC_CFG_ROW_14	(1 << DDRC_CFG_ROW_BIT) /* 14-bit row address is used */
+  #define DDRC_CFG_ROW_12	(0 << DDRC_CFG_ROW_BIT) /* 13-bit row address is used */
+  #define DDRC_CFG_ROW_13	(1 << DDRC_CFG_ROW_BIT) /* 13-bit row address is used */
+  #define DDRC_CFG_ROW_14	(2 << DDRC_CFG_ROW_BIT) /* 14-bit row address is used */
 
 #define DDRC_CFG_COL_BIT	8 /* Column Address width.
 				     Specify the Column address width of external DDR. */
 #define DDRC_CFG_COL_MASK	(0x3 << DDRC_CFG_COL_BIT)
-  #define DDRC_CFG_COL_9	(0 << DDRC_CFG_COL_BIT) /* 9-bit Column address is used */
-  #define DDRC_CFG_COL_10	(1 << DDRC_CFG_COL_BIT) /* 10-bit Column address is used */
+  #define DDRC_CFG_COL_8	(0 << DDRC_CFG_COL_BIT) /* 9-bit Column address is used */
+  #define DDRC_CFG_COL_9	(1 << DDRC_CFG_COL_BIT) /* 9-bit Column address is used */
+  #define DDRC_CFG_COL_10	(2 << DDRC_CFG_COL_BIT) /* 9-bit Column address is used */
+  #define DDRC_CFG_COL_11	(3 << DDRC_CFG_COL_BIT) /* 10-bit Column address is used */
 
 #define DDRC_CFG_CS1EN	(1 << 7) /* 0 DDR Pin CS1 un-used
 					    1 There're DDR memory connected to CS1 */
@@ -2300,7 +2330,7 @@ static inline u32 jz_readl(u32 address)
 /* DDRC Load-Mode-Register */
 #define DDRC_LMR_DDR_ADDR_BIT	16 /* When performing a DDR command, DDRC_ADDR[13:0]
 					      corresponding to external DDR address Pin A[13:0] */
-#define DDRC_LMR_DDR_ADDR_MASK	(0xff << DDRC_LMR_DDR_ADDR_BIT)
+#define DDRC_LMR_DDR_ADDR_MASK	(0x3fff << DDRC_LMR_DDR_ADDR_BIT)
 
 #define DDRC_LMR_BA_BIT		8 /* When performing a DDR command, BA[2:0]
 				     corresponding to external DDR address Pin BA[2:0]. */
@@ -2330,14 +2360,14 @@ static inline u32 jz_readl(u32 address)
 
 /* DDRC Mode Register Set */
 #define DDR2_MRS_PD_BIT		10 /* Active power down exit time */
-#define DDR2_MRS_PD_MASK	(1 << DDR_MRS_PD_BIT) 
+#define DDR2_MRS_PD_MASK	(1 << DDR_MRS_PD_BIT)
   #define DDR2_MRS_PD_FAST_EXIT	(0 << 10)
   #define DDR2_MRS_PD_SLOW_EXIT	(1 << 10)
 #define DDR2_MRS_WR_BIT		9 /* Write Recovery for autoprecharge */
 #define DDR2_MRS_WR_MASK	(7 << DDR_MRS_WR_BIT)
 #define DDR2_MRS_DLL_RST	(1 << 8) /* DLL Reset */
 #define DDR2_MRS_TM_BIT		7        /* Operating Mode */
-#define DDR2_MRS_TM_MASK	(1 << DDR_MRS_TM_BIT) 
+#define DDR2_MRS_TM_MASK	(1 << DDR_MRS_TM_BIT)
   #define DDR2_MRS_TM_NORMAL	(0 << DDR_MRS_TM_BIT)
   #define DDR2_MRS_TM_TEST	(1 << DDR_MRS_TM_BIT)
 #define DDR_MRS_CAS_BIT		4        /* CAS Latency */
@@ -2395,7 +2425,7 @@ static inline u32 jz_readl(u32 address)
 
 /* DDR1 Mode Register */
 #define DDR1_MRS_OM_BIT		7        /* Operating Mode */
-#define DDR1_MRS_OM_MASK	(0x3f << DDR1_MRS_OM_BIT) 
+#define DDR1_MRS_OM_MASK	(0x3f << DDR1_MRS_OM_BIT)
   #define DDR1_MRS_OM_NORMAL	(0 << DDR1_MRS_OM_BIT)
   #define DDR1_MRS_OM_TEST	(1 << DDR1_MRS_OM_BIT)
   #define DDR1_MRS_OM_DLLRST	(2 << DDR1_MRS_OM_BIT)
@@ -2467,7 +2497,9 @@ static inline u32 jz_readl(u32 address)
 
 /* DDRC Timing Config Register 2 */
 #define DDRC_TIMING2_TRFC_BIT         24 /* AUTO-REFRESH command period. */
-#define DDRC_TIMING2_TRFC_MASK        (0xf << DDRC_TIMING2_TRFC_BIT)
+#define DDRC_TIMING2_TRFC_MASK        (0x3f << DDRC_TIMING2_TRFC_BIT)
+#define DDRC_TIMING2_TRWCOV_BIT	      19
+#define DDRC_TIMING2_TRWCOV_MASK      (0x3 << DDRC_TIMING2_TRWCOV_BIT)
 #define DDRC_TIMING2_TMINSR_BIT       8  /* Minimum Self-Refresh / Deep-Power-Down time */
 #define DDRC_TIMING2_TMINSR_MASK      (0xf << DDRC_TIMING2_TMINSR_BIT)
 #define DDRC_TIMING2_TXP_BIT          4  /* EXIT-POWER-DOWN to next valid command period. */
@@ -2491,11 +2523,11 @@ static inline u32 jz_readl(u32 address)
 #define DDRC_DQS_DET                  (1 << 24) /* Start delay detecting. */
 #define DDRC_DQS_SRDET                (1 << 25) /* Hardware auto-redetect & set delay line. */
 #define DDRC_DQS_CLKD_BIT             16 /* CLKD is reference value for setting WDQS and RDQS.*/
-#define DDRC_DQS_CLKD_MASK            (0x7f << DDRC_DQS_CLKD_BIT) 
+#define DDRC_DQS_CLKD_MASK            (0x3f << DDRC_DQS_CLKD_BIT)
 #define DDRC_DQS_WDQS_BIT             8  /* Set delay element number to write DQS delay-line. */
-#define DDRC_DQS_WDQS_MASK            (0x3f << DDRC_DQS_WDQS_BIT) 
+#define DDRC_DQS_WDQS_MASK            (0x3f << DDRC_DQS_WDQS_BIT)
 #define DDRC_DQS_RDQS_BIT             0  /* Set delay element number to read DQS delay-line. */
-#define DDRC_DQS_RDQS_MASK            (0x3f << DDRC_DQS_RDQS_BIT) 
+#define DDRC_DQS_RDQS_MASK            (0x3f << DDRC_DQS_RDQS_BIT)
 
 /* DDRC DQS Delay Adjust Register */
 #define DDRC_DQS_ADJWDQS_BIT          8 /* The adjust value for WRITE DQS delay */
@@ -2507,7 +2539,7 @@ static inline u32 jz_readl(u32 address)
 #define DDRC_MMAP_BASE_BIT            8 /* base address */
 #define DDRC_MMAP_BASE_MASK           (0xff << DDRC_MMAP_BASE_BIT)
 #define DDRC_MMAP_MASK_BIT            0 /* address mask */
-#define DDRC_MMAP_MASK_MASK           (0xff << DDRC_MMAP_MASK_BIT)         
+#define DDRC_MMAP_MASK_MASK           (0xff << DDRC_MMAP_MASK_BIT)
 
 #define DDRC_MMAP0_BASE		     (0x20 << DDRC_MMAP_BASE_BIT)
 #define DDRC_MMAP1_BASE_64M	(0x24 << DDRC_MMAP_BASE_BIT) /*when bank0 is 128M*/
@@ -2529,7 +2561,7 @@ static inline u32 jz_readl(u32 address)
 	value = (tmp % y == 0) ? (tmp / y) : (tmp / y + 1); \
 		value;                                \
 })
-  
+
 /*************************************************************************
  * CIM
  *************************************************************************/
@@ -3171,8 +3203,8 @@ static inline u32 jz_readl(u32 address)
 #define TVE_CTRL_EYCBCR         (1 << 25)    /* YCbCr_enable */
 #define TVE_CTRL_ECVBS          (1 << 24)    /* cvbs_enable */
 #define TVE_CTRL_DAPD3	        (1 << 23)    /* DAC 3 power down */
-#define TVE_CTRL_DAPD2	        (1 << 22)    /* DAC 2 power down */	
-#define TVE_CTRL_DAPD1	        (1 << 21)    /* DAC 1 power down */	
+#define TVE_CTRL_DAPD2	        (1 << 22)    /* DAC 2 power down */
+#define TVE_CTRL_DAPD1	        (1 << 21)    /* DAC 1 power down */
 #define TVE_CTRL_DAPD           (1 << 20)    /* power down all DACs */
 #define TVE_CTRL_YCDLY_BIT      16
 #define TVE_CTRL_YCDLY_MASK     (0x7 << TVE_CTRL_YCDLY_BIT)
@@ -3484,6 +3516,7 @@ static inline u32 jz_readl(u32 address)
 #define BCH_ERR_INDEX_ODD_MASK   (0x1fff << BCH_ERR_INDEX_ODD_BIT)
 #define BCH_ERR_INDEX_EVEN_BIT   0
 #define BCH_ERR_INDEX_EVEN_MASK  (0x1fff << BCH_ERR_INDEX_EVEN_BIT)
+#define BCH_ERR_INDEX_MASK	 0x1fff
 
 //----------------------------------------------------------------------
 //
@@ -3553,7 +3586,7 @@ static inline u32 jz_readl(u32 address)
 //	3	SA3		-              -             AL
 //	4	SA4		-              -
 //	5	SA5		-              -
-//	6	CIM_PCLK 	TSCLK	       -             
+//	6	CIM_PCLK 	TSCLK	       -
 //	7	CIM_HSYN  	TSFRM          -
 //	8	CIM_VSYN 	TSSTR          -
 //	9	CIM_MCLK 	TSFAIL         -
@@ -3565,8 +3598,8 @@ static inline u32 jz_readl(u32 address)
 //	15	CIM_D5		TSDI5          -
 //	16 	CIM_D6 		TSDI6          -
 //	17 	CIM_D7 		TSDI7          -
-//	18	-               -	       - 
-//	19	-               -	       - 
+//	18	-               -	       -
+//	19	-               -	       -
 //	20 	MSC2_D0 	SSI2_DR        TSDI0
 //	21 	MSC2_D1 	SSI2_DT        TSDI1
 //	22 	TSDI2		-              -
@@ -3583,44 +3616,44 @@ static inline u32 jz_readl(u32 address)
 //------------------------------------------------------
 // PORT 2:
 // PIN/BIT N	FUNC0		FUNC1		FUNC2 		FUNC3		NOTE
-//	0	LCD_B0 (O)	LCD_REV (O)	-               -	         
-//	1	LCD_B1 (O)	LCD_PS (O)	-               -	         
-//	2	LCD_B2 (O)	-               -	        - 
-//	3	LCD_B3 (O)	-               -	        - 
-//	4	LCD_B4 (O)	-               -	        - 
-//	5	LCD_B5 (O)	-               -	        - 
-//	6	LCD_B6 (O)	-               -	        - 
-//	7	LCD_B7 (O)	-               -	        - 
-//	8	LCD_PCLK (O)	-               -	        - 
-//	9	LCD_DE (O)	-               -	        - 
-//	10	LCD_G0 (O)	LCD_SPL (O)	-               -	         
-//	11	LCD_G1 (O)	-               -	        - 
-//	12	LCD_G2 (O)	-               -	        - 
-//	13	LCD_G3 (O)	-               -	        - 
-//	14	LCD_G4 (O)	-               -	        - 
-//	15	LCD_G5 (O)	-               -	        - 
-//	16	LCD_G6 (O)	-               -	        - 
-//	17	LCD_G7 (O)	-               -	        - 
-//	18	LCD_HSYN (IO)	-               -	        - 
-//	19	LCD_VSYN (IO)	-               -	        - 
-//	20	LCD_R0 (O)	LCD_CLS (O)	-               -	         
-//	21	LCD_R1 (O)	-               -	        - 
-//	22	LCD_R2 (O)	-               -	        - 
-//	23	LCD_R3 (O)	-               -	        - 
-//	24	LCD_R4 (O)	-               -	        - 
-//	25	LCD_R5 (O)	-               -	        - 
-//	26	LCD_R6 (O)	-               -	        - 
-//	27	LCD_R7 (O)	-               -	        - 
-//	28	UART2_RxD (I)	-               -	        - 
-//	29	UART2_CTS_ (I)	-               -	        - 
-//	30	UART2_TxD (O)	-               -	        - 
-//	31	UART2_RTS_ (O)	-               -	        - 
+//	0	LCD_B0 (O)	LCD_REV (O)	-               -
+//	1	LCD_B1 (O)	LCD_PS (O)	-               -
+//	2	LCD_B2 (O)	-               -	        -
+//	3	LCD_B3 (O)	-               -	        -
+//	4	LCD_B4 (O)	-               -	        -
+//	5	LCD_B5 (O)	-               -	        -
+//	6	LCD_B6 (O)	-               -	        -
+//	7	LCD_B7 (O)	-               -	        -
+//	8	LCD_PCLK (O)	-               -	        -
+//	9	LCD_DE (O)	-               -	        -
+//	10	LCD_G0 (O)	LCD_SPL (O)	-               -
+//	11	LCD_G1 (O)	-               -	        -
+//	12	LCD_G2 (O)	-               -	        -
+//	13	LCD_G3 (O)	-               -	        -
+//	14	LCD_G4 (O)	-               -	        -
+//	15	LCD_G5 (O)	-               -	        -
+//	16	LCD_G6 (O)	-               -	        -
+//	17	LCD_G7 (O)	-               -	        -
+//	18	LCD_HSYN (IO)	-               -	        -
+//	19	LCD_VSYN (IO)	-               -	        -
+//	20	LCD_R0 (O)	LCD_CLS (O)	-               -
+//	21	LCD_R1 (O)	-               -	        -
+//	22	LCD_R2 (O)	-               -	        -
+//	23	LCD_R3 (O)	-               -	        -
+//	24	LCD_R4 (O)	-               -	        -
+//	25	LCD_R5 (O)	-               -	        -
+//	26	LCD_R6 (O)	-               -	        -
+//	27	LCD_R7 (O)	-               -	        -
+//	28	UART2_RxD (I)	-               -	        -
+//	29	UART2_CTS_ (I)	-               -	        -
+//	30	UART2_TxD (O)	-               -	        -
+//	31	UART2_RTS_ (O)	-               -	        -
 
 //------------------------------------------------------
 // PORT 3:
 //
 // PIN/BIT N	FUNC0		FUNC1		FUNC2 		FUNC3		NOTE
-//	0 	MII_TXD0 	-     		-  		-		
+//	0 	MII_TXD0 	-     		-  		-
 //	1 	MII_TXD1	-     		-  		-
 //	2 	MII_TXD2	-     		-  		-
 //	3 	MII_TXD3	- 		-  		-
@@ -3652,12 +3685,12 @@ static inline u32 jz_readl(u32 address)
 //	29 	UART1_RTS_ 	-		-  		-
 //	30 	I2C0_SDA 	-		-  		-
 //	31 	I2C0_SCK 	-		-  		-
-//	
+//
 // Note2. PD17: GPIO group D bit 17 is used as BOOT_SEL0 input during boot.
 // Note3. PD18: GPIO group D bit 18 is used as BOOT_SEL1 input during boot.
 // Note4. PD19: GPIO group D bit 19 is used as BOOT_SEL2 input during boot.
 // Note5. BOOT_SEL2, BOOT_SEL1, BOOT_SEL0 are used to select boot source and function during the processor boot.
-//	
+//
 //------------------------------------------------------
 // PORT 4:
 //
@@ -3667,7 +3700,7 @@ static inline u32 jz_readl(u32 address)
 //	2  	PWM2 		SYNC 		- 		-
 //	3  	PWM3 		UART3_RxD 	BCLK 		-
 //	4  	PWM4 		- 		- 		-
-//	5  	PWM5 		UART3_TxD 	SCLK_RSTN 	-	
+//	5  	PWM5 		UART3_TxD 	SCLK_RSTN 	-
 //	6  	SDATI		- 		- 		-
 //	7  	SDATO 		- 		- 		-
 //	8  	UART3_CTS_ 	- 		- 		-
@@ -3688,10 +3721,10 @@ static inline u32 jz_readl(u32 address)
 //	23  	MSC0_D3 	MSC1_D3 	MSC2_D3 	-
 //	24  	MSC0_CLK 	MSC1_CLK 	MSC2_CLK 	-
 //	25  	MSC0_CMD 	MSC1_CMD 	MSC2_CMD 	-
-//	26  	MSC0_D4 	MSC0_D4 	MSC0_D4 	PS2_MCLK 
-//	27  	MSC0_D5 	MSC0_D5 	MSC0_D5 	PS2_MDATA 
-//	28  	MSC0_D6 	MSC0_D6 	MSC0_D6 	PS2_KCLK 
-//	29  	MSC0_D7 	MSC0_D7 	MSC0_D7 	PS2_KDATA 
+//	26  	MSC0_D4 	MSC0_D4 	MSC0_D4 	PS2_MCLK
+//	27  	MSC0_D5 	MSC0_D5 	MSC0_D5 	PS2_MDATA
+//	28  	MSC0_D6 	MSC0_D6 	MSC0_D6 	PS2_KCLK
+//	29  	MSC0_D7 	MSC0_D7 	MSC0_D7 	PS2_KDATA
 //	30  	I2C1_SDA 	SCC_DATA 	- 		-
 //	31  	I2C1_SCK 	SCC_CLK 	- 		-
 //
@@ -3757,9 +3790,9 @@ do {						\
 
 
 /*
- * MII_TXD0- D3 MII_TXEN MII_TXCLK MII_COL 
+ * MII_TXD0- D3 MII_TXEN MII_TXCLK MII_COL
  * MII_RXER MII_RXDV MII_RXCLK MII_RXD0 - D3
- * MII_CRS MII_MDC MII_MDIO 
+ * MII_CRS MII_MDC MII_MDIO
  */
 
 #define __gpio_as_eth()				\
@@ -4046,7 +4079,7 @@ do {						\
 	REG_GPIO_PXPES(1)  = 0x0003ffc0;	\
 } while (0)
 
-/* 
+/*
  * SDATO, SDATI, BCLK, SYNC, SCLK_RSTN(gpio sepc) or
  * SDATA_OUT, SDATA_IN, BIT_CLK, SYNC, SCLK_RESET(aic spec)
  */
@@ -4222,8 +4255,8 @@ do {						\
 
 #define __gpio_port_as_output0(p, o)		\
 do {						\
-    REG_GPIO_PXINTC(p) = (1 << (o));		\						
-    REG_GPIO_PXMASKS(p) = (1 << (o));		\						
+    REG_GPIO_PXINTC(p) = (1 << (o));		\
+    REG_GPIO_PXMASKS(p) = (1 << (o));		\
     REG_GPIO_PXPAT1C(p) = (1 << (o));		\
     REG_GPIO_PXPAT0C(p) = (1 << (o));		\
 } while (0)
@@ -4418,13 +4451,15 @@ do {						\
 #define __cpm_get_cdiv() \
 	((REG_CPM_CPCCR & CPM_CPCCR_CDIV_MASK) >> CPM_CPCCR_CDIV_BIT)
 #define __cpm_get_hdiv() \
-	((REG_CPM_CPCCR & CPM_CPCCR_HDIV_MASK) >> CPM_CPCCR_HDIV_BIT)
+	((REG_CPM_CPCCR & CPM_CPCCR_HDIV_MASK) >> CPM_CPCCR_H0DIV_BIT)
 #define __cpm_get_h2div() \
 	((REG_CPM_CPCCR & CPM_CPCCR_H2DIV_MASK) >> CPM_CPCCR_H2DIV_BIT)
+#define __cpm_get_h1div() \
+	((REG_CPM_CPCCR & CPM_CPCCR_H1DIV_MASK) >> CPM_CPCCR_H1DIV_BIT)
 #define __cpm_get_pdiv() \
 	((REG_CPM_CPCCR & CPM_CPCCR_PDIV_MASK) >> CPM_CPCCR_PDIV_BIT)
 #define __cpm_get_mdiv() \
-	((REG_CPM_CPCCR & CPM_CPCCR_MDIV_MASK) >> CPM_CPCCR_MDIV_BIT)
+	((REG_CPM_CPCCR & CPM_CPCCR_H0DIV_MASK) >> CPM_CPCCR_H0DIV_BIT)
 #define __cpm_get_sdiv() \
 	((REG_CPM_CPCCR & CPM_CPCCR_SDIV_MASK) >> CPM_CPCCR_SDIV_BIT)
 #define __cpm_get_i2sdiv() \
@@ -4641,8 +4676,8 @@ static __inline__ unsigned int __cpm_get_pllout(void)
 	unsigned long cppcr = REG_CPM_CPPCR;
 	unsigned long od[4] = {1, 2, 4, 8};
 	if ((cppcr & CPM_CPPCR_PLLEN) && (!(cppcr & CPM_CPPCR_PLLBP))) {
-		m = __cpm_get_pllm() * 2;
-		n = __cpm_get_plln();
+		m = __cpm_get_pllm() + 1;// * 2;
+		n = __cpm_get_plln() + 1;
 		no = od[__cpm_get_pllod()];
 		pllout = ((JZ_EXTAL) * m / (n * no));
 	} else
@@ -4665,7 +4700,7 @@ static __inline__ unsigned int __cpm_get_pll1out(void)
 			pllout = ((__cpm_get_pllout()) * m / (n * no));
 		else
 			pllout = ((JZ_EXTAL) * m / (n * no));
-			
+
 	} else
 		pllout = JZ_EXTAL;
 	return pllout;
@@ -5297,7 +5332,7 @@ do {									\
 	REG_AIC_ACCR1 |= AC97_PCM_XS_L_FRONT | AC97_PCM_XS_R_FRONT;	\
 } while(0)
 
-/* In fact, only stereo is support now. */ 
+/* In fact, only stereo is support now. */
 #define __ac97_set_rs_none()	( REG_AIC_ACCR1 &= ~AIC_ACCR1_RS_MASK )
 #define __ac97_set_rs_mono() 						\
 do {									\
@@ -5403,7 +5438,7 @@ do { 									\
 #define __aic_write_tfifo(v)  ( REG_AIC_DR = (v) )
 #define __aic_read_rfifo()    ( REG_AIC_DR )
 
-#define __aic_internal_codec()  ( REG_AIC_FR |= AIC_FR_ICDC ) 
+#define __aic_internal_codec()  ( REG_AIC_FR |= AIC_FR_ICDC )
 #define __aic_external_codec()  ( REG_AIC_FR &= ~AIC_FR_ICDC )
 
 //
@@ -5799,7 +5834,7 @@ do { 						\
 /* frmhl,endian,mcom,flen,pha,pol MASK */
 #define SSICR1_MISC_MASK 					\
 	( SSI_CR1_FRMHL_MASK | SSI_CR1_LFST | SSI_CR1_MCOM_MASK	\
-	  | SSI_CR1_FLEN_MASK | SSI_CR1_PHA | SSI_CR1_POL )	
+	  | SSI_CR1_FLEN_MASK | SSI_CR1_PHA | SSI_CR1_POL )
 
 #define __ssi_spi_set_misc(n,frmhl,endian,flen,mcom,pha,pol)		\
 	do {								\
@@ -5814,7 +5849,7 @@ do { 						\
 #define __ssi_set_lsb(n) ( REG_SSI_CR1(n) |= SSI_CR1_LFST )
 
 #define __ssi_set_frame_length(n, m)					\
-	REG_SSI_CR1(n) = (REG_SSI_CR1(n) & ~SSI_CR1_FLEN_MASK) | (((m) - 2) << 4) 
+	REG_SSI_CR1(n) = (REG_SSI_CR1(n) & ~SSI_CR1_FLEN_MASK) | (((m) - 2) << 4)
 
 /* m = 1 - 16 */
 #define __ssi_set_microwire_command_length(n,m)				\
@@ -6079,7 +6114,7 @@ do {						\
 #define __lcd_panel_white()		( REG_LCD_CFG |= LCD_CFG_WHITE )
 #define __lcd_panel_black()		( REG_LCD_CFG &= ~LCD_CFG_WHITE )
 
-/* n=1,2,4,8 for single mono-STN 
+/* n=1,2,4,8 for single mono-STN
  * n=4,8 for dual mono-STN
  */
 #define __lcd_set_panel_datawidth(n) 		\
@@ -6290,7 +6325,7 @@ do{                                \
        while(!__rtc_write_ready());\
 	   REG_RTC_RSR;                \
 }while(0)
- 
+
 #define __rtc_set_second(v)         \
 do{                                 \
       while(!__rtc_write_ready());  \
@@ -6303,7 +6338,7 @@ do{                                \
 	  REG_RTC_RSAR;                \
 }while(0)
 
-	  
+
 #define __rtc_set_alarm_second(v)   \
 do{                                 \
       while(!__rtc_write_ready());  \
@@ -6341,7 +6376,7 @@ do{                                 \
 #define __rtc_get_nc1Hz_val()       \
       while(!__rtc_write_ready());  \
       ( (REG_RTC_RGR & RTC_RGR_NC1HZ_MASK) >> RTC_RGR_NC1HZ_BIT )
-      
+
 #define __rtc_set_nc1Hz_val(v)      \
 do{                                 \
       while(!__rtc_write_ready());  \

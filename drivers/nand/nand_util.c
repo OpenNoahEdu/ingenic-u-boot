@@ -362,7 +362,7 @@ int nand_write_opts(nand_info_t *meminfo, const nand_write_options_t *opts)
 	/* get image length */
 	imglen = opts->length;
 
-#if defined(CONFIG_JZ4760B)
+#if defined(CONFIG_JZ4760B) || defined(CONFIG_JZ4770)
 	pagelen = meminfo->oobblock - meminfo->freesize
 		+ ((opts->writeoob != 0) ? meminfo->oobsize : 0);
 #else
@@ -557,7 +557,7 @@ int nand_read_opts(nand_info_t *meminfo, const nand_read_options_t *opts)
 		return -1;
 	}
 
-#if defined(CONFIG_JZ4760B)
+#if defined(CONFIG_JZ4760B) || defined(CONFIG_JZ4770)
 	pagelen = meminfo->oobblock - meminfo->freesize
 		+ ((opts->readoob != 0) ? meminfo->oobsize : 0);
 #else
@@ -639,7 +639,7 @@ int nand_read_opts(nand_info_t *meminfo, const nand_read_options_t *opts)
 			return -1;
 		}
 
-#if defined(CONFIG_JZ4760B)
+#if defined(CONFIG_JZ4760B) || defined(CONFIG_JZ4770)
 		if (imglen < meminfo->data_per_page) {
 			imglen = meminfo->data_per_page;	
 		}

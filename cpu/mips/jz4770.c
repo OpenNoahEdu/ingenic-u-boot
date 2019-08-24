@@ -71,25 +71,28 @@ void jzmemset(void *dest,int ch,int len)
 void pll_init(void)
 {
 	register unsigned int cfcr, plcr1;
-	int n2FR[9] = {
-		0, 0, 1, 2, 3, 0, 4, 0, 5
+	int n2FR[13] = {
+		0, 0, 1, 2, 3, 0, 4, 0, 5, 0, 0, 0, 6
 	};
 
         /** divisors, 
-	 *  for jz4760 ,I:H:H2:P:M:S.
+	 *  for jz4770 ,I:H0:P:C1:H2:H1
 	 *  DIV should be one of [1, 2, 3, 4, 6, 8]
          */
-	int div[6] = {1, 2, 4, 4, 4, 4};
-	//int div[6] = {1, 2, 2, 2, 2, 2};
+//	int div[6] = {1, 6, 6, 3, 6, 3};
+//	int div[6] = {1, 8, 8, 4, 8, 4};
+	int div[6] = {1, 4, 8, 2, 4, 4};
+//	int div[6] = {1, 2, 4, 2, 2, 2};
 	int pllout2;
 
-	cfcr = 	CPM_CPCCR_PCS |
+//	cfcr = 	CPM_CPCCR_PCS |
+	cfcr = 
 		(n2FR[div[0]] << CPM_CPCCR_CDIV_BIT) | 
-		(n2FR[div[1]] << CPM_CPCCR_HDIV_BIT) | 
-		(n2FR[div[2]] << CPM_CPCCR_H2DIV_BIT) |
-		(n2FR[div[3]] << CPM_CPCCR_PDIV_BIT) |
-		(n2FR[div[4]] << CPM_CPCCR_MDIV_BIT) |
-		(n2FR[div[5]] << CPM_CPCCR_SDIV_BIT);
+		(n2FR[div[1]] << CPM_CPCCR_H0DIV_BIT) | 
+		(n2FR[div[2]] << CPM_CPCCR_PDIV_BIT) |
+		(n2FR[div[3]] << CPM_CPCCR_C1DIV_BIT) |
+		(n2FR[div[4]] << CPM_CPCCR_H2DIV_BIT) |
+		(n2FR[div[5]] << CPM_CPCCR_H1DIV_BIT);
 
 	if (CFG_EXTAL > 16000000)
 		cfcr |= CPM_CPCCR_ECS;
@@ -125,11 +128,24 @@ void pll_init(void)
 /*
 	serial_puts("REG_CPM_CPCCR = ");
 	serial_put_hex(REG_CPM_CPCCR);
-	serial_puts("REG_CPM_CPPCR = ");
 	serial_put_hex(REG_CPM_CPPCR);
 */
 }
 #endif
+
+void pll_1_init(void)
+{
+        register unsigned int plcr1;
+
+        /* set CPM_CPCCR_MEM only for ddr1 or ddr2 */
+        plcr1 = CPCCR1_M_N_OD | CPM_CPPCR1_PLL1EN;
+
+        /* init PLL_1 , source clock is extal clock */
+        REG_CPM_CPPCR1 = plcr1;
+        __cpm_enable_pll_change();
+        while (!(REG_CPM_CPPCR1 & CPM_CPPCR1_PLL1S));
+}
+
 
 //----------------------------------------------------------------------
 // U-Boot common routines
@@ -159,6 +175,7 @@ static void calc_clocks(void)
 #ifndef CONFIG_FPGA
 static void rtc_init(void)
 {
+#if 0
 #define RTC_UNLOCK()			\
 do {					\
 	while ( !__rtc_write_ready());	\
@@ -186,6 +203,7 @@ do {					\
 	REG_RTC_HRCR  = 0x00000fe0; /* reset delay 125ms */
 
 	serial_puts("rtc_init ~~~~~~~~~~ --\n");
+#endif
 }
 #endif
 
@@ -200,6 +218,7 @@ int jz_board_init(void)
 #ifndef CONFIG_FPGA
 	pll_init();          /* init PLL, do it when nor boot or defined(CONFIG_MSC_U_BOOT) */
 #endif
+	pll_1_init();
 
 #if !defined(CONFIG_NAND_U_BOOT) && !defined(CONFIG_SPI_U_BOOT) && !defined(CONFIG_MSC_U_BOOT)
 	serial_init();

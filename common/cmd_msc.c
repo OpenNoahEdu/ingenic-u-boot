@@ -33,7 +33,7 @@ do {						\
 /* Stop the MMC clock and wait while it happens */
 static inline int jz_mmc_stop_clock(void)
 {
-	int timeout = 1000;
+	int timeout = 10000000;
 
 	REG_MSC_STRPCL = MSC_STRPCL_CLOCK_CONTROL_STOP;
 
@@ -123,7 +123,6 @@ static int mmc_block_writem(u32 src, u32 num, u8 *dst)
 	}
 
 	for (nob; nob >= 1; nob--) {
-
 		timeout = 0x3FFFFFF;
 
 		while (timeout) {
@@ -159,9 +158,13 @@ static int mmc_block_writem(u32 src, u32 num, u8 *dst)
 
 	while (!(REG_MSC_STAT & MSC_STAT_DATA_TRAN_DONE))
 		;
+	
+	REG_MSC_IREG |= MSC_IREG_DATA_TRAN_DONE;	
 
 	while (!(REG_MSC_STAT & MSC_STAT_PRG_DONE))
 		;
+	REG_MSC_IREG |= MSC_IREG_PRG_DONE;	
+
 	jz_mmc_stop_clock();
 	return 0;
 }
@@ -192,7 +195,6 @@ static int mmc_block_readm(u32 src, u32 num, u8 *dst)
 	}
 
 	for (nob; nob >= 1; nob--) {
-
 		timeout = 0x3ffffff;
 
 		while (timeout) {
@@ -236,6 +238,11 @@ static int mmc_block_readm(u32 src, u32 num, u8 *dst)
 
 	if (sorm)
 		resp = mmc_cmd(12, 0, 0x41, MSC_CMDAT_RESPONSE_R1);
+
+	while (!(REG_MSC_STAT & MSC_STAT_DATA_TRAN_DONE))
+		;
+	
+	REG_MSC_IREG |= MSC_IREG_DATA_TRAN_DONE;	
 
 	jz_mmc_stop_clock();
 	return 0;
@@ -282,7 +289,10 @@ static int  mmc_init(void)
 	__gpio_as_msc();
 	__msc_reset();
 	MMC_IRQ_MASK();	
-	__cpm_select_msc_clk(0,1);
+
+	REG_CPM_MSCCDR = __cpm_get_pllout2()%24000000 ? __cpm_get_pllout2()/24000000 : __cpm_get_pllout2()/24000000 - 1;
+	REG_CPM_CPCCR |= CPM_CPCCR_CE;
+
 	REG_MSC_CLKRT = 7;    //250k
 	REG_MSC_RDTO = 0xffffffff;
 
@@ -317,6 +327,9 @@ static int  mmc_init(void)
 		REG_MSC_CLKRT = 2;	/* 16/1 MHz */
 		resp = mmc_cmd(7, 0x10, 0x1, MSC_CMDAT_RESPONSE_R1);
 		resp = mmc_cmd(6, 0x3b70101, 0x441, MSC_CMDAT_RESPONSE_R1);
+		while(!(REG_MSC_STAT & MSC_STAT_PRG_DONE))
+			;
+		REG_MSC_IREG |= MSC_IREG_PRG_DONE;
 	}
 	else
 		sd_init();

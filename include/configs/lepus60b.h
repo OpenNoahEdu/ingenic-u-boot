@@ -30,10 +30,11 @@
 
 #ifdef CONFIG_JZ_RECOVERY
 #define CFG_JZ_LINUX_RECOVERY
+
+/* Support 3 types turning to Recovery Mode */
 #define CFG_SUPPORT_RECOVERY_REG
 #define CFG_SUPPORT_RECOVERY_KEY
 #define CFG_SUPPORT_RECOVERY_MISC
-
 #endif
 //#define DEBUG
 
@@ -45,7 +46,7 @@
 //#define CFG_NAND_BCH_WITH_OOB	1  /* Support uImage.oob */
 
 #ifdef CONFIG_MSC_U_BOOT
-#define CONFIG_MSC_TYPE_SD
+//#define CONFIG_MSC_TYPE_SD
 #endif
 
 /* memory group */
@@ -105,7 +106,7 @@
 	"mem=192M console=ttyS1,57600n8 ip=192.168.10.125 rw rdinit=/linuxrc"
 
 #define LINUX_CMDLINE2 \
-	"mem=192M console=ttyS1,57600n8 ip=off root=/dev/ram0 rw rdinit=/init"
+	"mem=192M console=ttyS1,57600n8 ip=off root=/dev/ram0 rw rdinit=/linuxrc"
 
 #define LINUX_CMDLINE3 \
 	"mem=192M console=ttyS1,57600n8 ip=off rootfstype=ext3 root=/dev/mmcblk0p1 rw"
@@ -119,11 +120,11 @@
 
 #ifdef CFG_JZ_LINUX_RECOVERY
 #ifdef CONFIG_MSC_U_BOOT			
-#define CONFIG_REVY_BOOTARGS		LINUX_CMDLINE1
-#define CONFIG_REVY_BOOTCOMMAND		"msc read 0x80600000 0x500000 0x300000;bootm"
+#define CONFIG_REVY_BOOTARGS		LINUX_CMDLINE2
+#define CONFIG_REVY_BOOTCOMMAND		"msc read 0x80600000 0x800000 0x400000;bootm"
 #else  /* CONFIG_NAND_U_BOOT */
-#define CONFIG_REVY_BOOTARGS		LINUX_CMDLINE1
-#define CONFIG_REVY_BOOTCOMMAND		"nand read 0x80600000 0x500000 0x300000;bootm"
+#define CONFIG_REVY_BOOTARGS		LINUX_CMDLINE2
+#define CONFIG_REVY_BOOTCOMMAND		"nand read 0x80600000 0x800000 0x400000;bootm"
 #endif
 #endif
 

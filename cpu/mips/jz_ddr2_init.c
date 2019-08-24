@@ -82,8 +82,11 @@ void ddr_mem_init(int msel, int hl, int tsel, int arg)
 	REG_DDRC_LMR = DDRC_LMR_BA_EMRS3 | DDRC_LMR_CMD_LMR | DDRC_LMR_START;//0x321;
 
 	/* EMR1: extend mode register1 */
+#if defined(CONFIG_DDR2_DIFFERENTIAL)
+	REG_DDRC_LMR = ((DDR_EMRS1_DIC_HALF) << 16) | DDRC_LMR_BA_EMRS1 | DDRC_LMR_CMD_LMR | DDRC_LMR_START;
+#else
 	REG_DDRC_LMR = ((DDR_EMRS1_DIC_NORMAL | DDR_EMRS1_DQS_DIS) << 16) | DDRC_LMR_BA_EMRS1 | DDRC_LMR_CMD_LMR | DDRC_LMR_START;
-
+#endif
 	/* wait DDR_tMRD */
 	tmp_cnt = (cpu_clk / 1000000) * 1;
 	while (tmp_cnt--);
@@ -124,11 +127,19 @@ void ddr_mem_init(int msel, int hl, int tsel, int arg)
 	while (tmp_cnt--);
 
 	/* EMR1 - OCD Default */
-	REG_DDRC_LMR = (DDR_EMRS1_DIC_NORMAL | DDR_EMRS1_DQS_DIS | DDR_EMRS1_OCD_DFLT) << 16
-		| DDRC_LMR_BA_EMRS1 | DDRC_LMR_CMD_LMR | DDRC_LMR_START;
+#if defined(CONFIG_DDR2_DIFFERENTIAL)
+	REG_DDRC_LMR = (DDR_EMRS1_DIC_HALF | DDR_EMRS1_OCD_DFLT) << 16 | DDRC_LMR_BA_EMRS1 | DDRC_LMR_CMD_LMR | DDRC_LMR_START;
+#else
+	REG_DDRC_LMR = (DDR_EMRS1_DIC_NORMAL | DDR_EMRS1_DQS_DIS | DDR_EMRS1_OCD_DFLT) << 16 | DDRC_LMR_BA_EMRS1 | DDRC_LMR_CMD_LMR | DDRC_LMR_START;
+#endif
+
 
 	/* EMR1 - OCD Exit */
+#if defined(CONFIG_DDR2_DIFFERENTIAL)
+	REG_DDRC_LMR = ((DDR_EMRS1_DIC_HALF) << 16) | DDRC_LMR_BA_EMRS1 | DDRC_LMR_CMD_LMR | DDRC_LMR_START;
+#else
 	REG_DDRC_LMR = ((DDR_EMRS1_DIC_NORMAL | DDR_EMRS1_DQS_DIS) << 16) | DDRC_LMR_BA_EMRS1 | DDRC_LMR_CMD_LMR | DDRC_LMR_START;
+#endif
 
 	/* wait DDR_tMRD */
 	tmp_cnt = (cpu_clk / 1000000) * 1;

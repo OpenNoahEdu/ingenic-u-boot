@@ -36,14 +36,16 @@
 #include <linux/stddef.h>
 #include <malloc.h>
 
+#undef DEBUG                                                                   
+//#define DEBUG                                                                    
+#ifdef DEBUG                                                                     
+#define dputs(x...)   puts(x)                                                
+#else                                                                            
+#define dputs(x...)                                                            
+#endif    
+
+
 #ifdef CFG_JZ_LINUX_RECOVERY
-#if 0
-#if defined(CONFIG_JZ4760) || defined(CONFIG_JZ4760B)
-#define CFG_SUPPORT_RECOVERY_REG
-#define CFG_SUPPORT_RECOVERY_KEY
-#define CFG_SUPPORT_RECOVERY_MISC
-#endif
-#endif
 
 unsigned int is_jz_linux_recovery;
 extern unsigned char default_environment[];
@@ -109,11 +111,21 @@ static int handle_bootloader_command(void)
 		puts("WARNING: bootloader_message -> command [0] is not '\\0' !\n");
 	}
 
-	puts("In handle_bootloader_command ... default ...\n");
+	dputs("In handle_bootloader_command ... default ...\n");
 
 	//dump_ram(&g_boot_msg, sizeof(struct bootloader_message));
 
 	return BOOT_NORMAL;
+}
+void clear_bootloader_message_command()
+{
+	memset(g_boot_msg.command, '\0', sizeof(g_boot_msg.command));
+	set_bootloader_message(&g_boot_msg);
+}
+void clear_bootloader_message()
+{
+	memset(&g_boot_msg, '\0', sizeof(g_boot_msg));
+	set_bootloader_message(&g_boot_msg);
 }
 #endif
 
@@ -156,6 +168,16 @@ static int get_recovery_signature(void)
 
 int recovery_mode_check(void)
 {
+#ifdef CFG_SUPPORT_RECOVERY_MISC
+	/* Handle boot message (MISC partition). */
+	memset(&g_boot_msg, '\0', sizeof(struct bootloader_message));
+	if (get_bootloader_message(&g_boot_msg) ) {
+		puts("Got bootloader message failed !\n");
+	} else {
+		if(handle_bootloader_command()==BOOT_RECOVERY_MISC)
+            return BOOT_RECOVERY_MISC;
+	}
+#endif
 #ifdef CFG_SUPPORT_RECOVERY_KEY
 	/* Recovery boot keys */
 	if (is_recovery_keys_pressed()){
@@ -166,15 +188,6 @@ int recovery_mode_check(void)
 	/* Recovery signature */
 	if(get_recovery_signature()){
 		return BOOT_RECOVERY_REG;
-	}
-#endif
-#ifdef CFG_SUPPORT_RECOVERY_MISC
-	/* Handle boot message (MISC partition). */
-	memset(&g_boot_msg, '\0', sizeof(struct bootloader_message));
-	if (get_bootloader_message(&g_boot_msg) ) {
-		puts("Got bootloader message failed !\n");
-	} else {
-		return handle_bootloader_command();
 	}
 #endif
 	return BOOT_NORMAL;
@@ -201,6 +214,10 @@ void jz_recovery_handle(void)
 		if (signature == RECOVERY_SIGNATURE_SEC)
 			__cpm_set_scrpad(0);
 	}
+#endif
+#ifdef CFG_SUPPORT_RECOVERY_MISC
+	dputs("clear_bootloader_message ...\n");
+	clear_bootloader_message_command();
 #endif
 
 	memset(default_environment,0,CONFIG_DEFAULT_ENV_SIZE);

@@ -24,6 +24,8 @@
 #include <common.h>
 #include <asm/jz4810.h>
 
+extern void memtest_dma_main(void);
+
 //#define DEBUG
 #undef DEBUG
 
@@ -70,6 +72,7 @@ static void ddrc_regs_print(void)
 	dprintf("REG_DDRC_MDELAY \t\t= 0x%08x\n", REG_DDRC_MDELAY);
 }
 
+#if 0
 #define DDR_16M (16 * 1024 * 1024)
 static void map_ddr_memory(unsigned long vbase, unsigned long pbase, unsigned long meg) {
 	int i, entrys, pfn0, pfn1, vadd, padd;
@@ -89,7 +92,7 @@ static void map_ddr_memory(unsigned long vbase, unsigned long pbase, unsigned lo
 		add_wired_entry(entrylo0, entrylo1, entryhi, pagemask);
 	}
 }
-
+#endif
 #endif /* DEBUG */
 
 static void jzmemset(void *dest,int ch,int len)
@@ -183,13 +186,13 @@ static void dma_nodesc_test(int dma_chan, int dma_src_addr, int dma_dst_addr, in
 	dma_dst_phys_addr = dma_dst_addr & ~0xa0000000;
 
 	/* Init DMA module */
-	REG_DMAC_DCCSR(dma_chan) = 0;
-	REG_DMAC_DRSR(dma_chan) = DMAC_DRSR_RS_AUTO;
-	REG_DMAC_DSAR(dma_chan) = dma_src_phys_addr;
-	REG_DMAC_DTAR(dma_chan) = dma_dst_phys_addr;
-	REG_DMAC_DTCR(dma_chan) = size / 32;
-	REG_DMAC_DCMD(dma_chan) = DMAC_DCMD_SAI | DMAC_DCMD_DAI | DMAC_DCMD_SWDH_32 | DMAC_DCMD_DWDH_32 | DMAC_DCMD_DS_32BYTE | DMAC_DCMD_TIE;
-	REG_DMAC_DCCSR(dma_chan) = DMAC_DCCSR_NDES | DMAC_DCCSR_EN;
+	REG_MDMAC_DCCSR(dma_chan) = 0;
+	REG_MDMAC_DRSR(dma_chan) = DMAC_DRSR_RS_AUTO;
+	REG_MDMAC_DSAR(dma_chan) = dma_src_phys_addr;
+	REG_MDMAC_DTAR(dma_chan) = dma_dst_phys_addr;
+	REG_MDMAC_DTCR(dma_chan) = size / 32;
+	REG_MDMAC_DCMD(dma_chan) = DMAC_DCMD_SAI | DMAC_DCMD_DAI | DMAC_DCMD_SWDH_32 | DMAC_DCMD_DWDH_32 | DMAC_DCMD_DS_32BYTE | DMAC_DCMD_TIE;
+	REG_MDMAC_DCCSR(dma_chan) = DMAC_DCCSR_NDES | DMAC_DCCSR_EN;
 }
 
 struct ddr_delay_sel_t {
@@ -239,26 +242,22 @@ static int ddr_dma_test(int print_flag)
 			*(volatile unsigned int *)(addr + i) = gen_verify_data(i);
 		}
 
-		REG_DMAC_DMACR(0) = 0;
+		REG_MDMAC_DMACR = 0;
 
 		/* Init target buffer */
 		jzmemset((void *)DDR_DMA0_DST, 0, testsize);
 		dma_nodesc_test(0, DDR_DMA0_SRC, DDR_DMA0_DST, testsize);
 
-		REG_DMAC_DMACR(0) = DMAC_DMACR_DMAE; /* global DMA enable bit */
+		REG_MDMAC_DMACR = DMAC_DMACR_DMAE; /* global DMA enable bit */
 
-		while(REG_DMAC_DTCR(0));
+		while(REG_MDMAC_DTCR(0));
 
 		tmp = (cpu_clk / 1000000) * 1;
 		while (tmp--);
 
 		err = dma_check_result((void *)DDR_DMA0_SRC, (void *)DDR_DMA0_DST, testsize,print_flag);
 
-		//REG_DMAC_DCCSR(0) &= ~DMAC_DCCSR_EN;  /* disable DMA */
-		REG_DMAC_DMACR(0) = 0;
-		REG_DMAC_DCCSR(0) = 0;
-		REG_DMAC_DCMD(0) = 0;
-		REG_DMAC_DRSR(0) = 0;
+		REG_MDMAC_DCCSR(0) &= ~DMAC_DCCSR_EN;  /* disable DMA */
 
 		if (err != 0) {
 			return err;
@@ -299,7 +298,7 @@ void sdram_init(void)
 
 #if defined(CONFIG_FPGA)
 	mem_clk = CFG_EXTAL / CFG_DIV;
-	ps = 7500;
+	ps = 7500;	      /* computed by 133MHZ, on FPGA it's 12MHZ */
 //	ns = 7;
 #else
 	mem_clk = __cpm_get_mclk();
@@ -364,7 +363,7 @@ void sdram_init(void)
 	// Unit is ns
 	if(DDR_tWTR > 5) {
 		/* WRITE to READ command delay. */
-		tmp = DDR_GET_VALUE(DDR_tWTR, ps);
+		tmp = DR_GET_VALUE(DDR_tWTR, ps);
 		//tmp = (DDR_tWTR % ns == 0) ? DDR_tWTR / ns : (DDR_tWTR / ns + 1);
 		if (tmp > 4) tmp = 4;
 		ddrc_timing1_reg |= ((tmp - 1) << DDRC_TIMING1_TWTR_BIT);
@@ -380,7 +379,8 @@ void sdram_init(void)
 	tmp = DDR_GET_VALUE(DDR_tRFC, ps);
 	//tmp = (DDR_tRFC % ns == 0) ? DDR_tRFC / ns : (DDR_tRFC / ns + 1);
 	if (tmp > 31) tmp = 31;
-	ddrc_timing2_reg = ((tmp / 2) << DDRC_TIMING2_TRFC_BIT);
+//	ddrc_timing2_reg = ((tmp / 2) << DDRC_TIMING2_TRFC_BIT);
+	ddrc_timing2_reg = 0x5 << 24;
 
 	/* Minimum Self-Refresh / Deep-Power-Down time */
 	tmp = DDR_tMINSR;
@@ -389,6 +389,9 @@ void sdram_init(void)
 	tmp = ((tmp - 1)%8 == 0) ? ((tmp - 1)/8-1) : ((tmp - 1)/8);
 	ddrc_timing2_reg |= (tmp << DDRC_TIMING2_TMINSR_BIT);
 	ddrc_timing2_reg |= (DDR_tXP - 1) << 4 | (DDR_tMRD - 1);
+
+	serial_puts("timing2:");
+	serial_put_hex(ddrc_timing2_reg);
 
 	init_ddrc_refcnt = DDR_CLK_DIV << 1 | DDRC_REFCNT_REF_EN;
 
@@ -719,7 +722,8 @@ __convert:
 	/* Wait for number of auto-refresh cycles */
 	tmp_cnt = (cpu_clk / 1000000) * 10;
 	while (tmp_cnt--);
-	ddr_dma_test(1);
+	//ddr_dma_test(1);
+	//memtest_dma_main();
 
 #ifdef DEBUG
 	ddrc_regs_print();

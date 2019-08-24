@@ -26,6 +26,9 @@
 #include <asm/jz4760b.h>
 #endif
 
+//#define DEBUG
+#undef DEBUG
+
 #define NEMC_PNCR (NEMC_BASE+0x100)
 #define NEMC_PNDR (NEMC_BASE+0x104)
 #define REG_NEMC_PNCR REG32(NEMC_PNCR)
@@ -422,7 +425,30 @@ void spl_boot(void)
 	REG_MDMAC_DMACKES = 0x3;
 	gpio_init();
 	serial_init();
+#ifdef DEBUG
+{
+	unsigned int val;
 
+	serial_puts("\n\n");
+	asm volatile ( "mfc0 %0, $8, 0\n\t"  :"=r" (val):);
+	serial_puts("BadADDR: ");
+	serial_put_hex(val);
+
+	asm volatile ( "mfc0 %0, $13, 0\n\t" :"=r" (val):);
+	serial_puts("CAUSE: ");
+	serial_put_hex(val);
+
+	asm volatile ( "mfc0 %0, $14, 0\n\t" :"=r" (val):);
+	serial_puts("EPC: ");
+	serial_put_hex(val);
+
+	asm volatile ( "mfc0 %0, $30, 0\n\t" :"=r" (val):);
+	serial_puts("ErrorEPC: ");
+	serial_put_hex(val);
+
+	serial_puts("\n\n");
+}
+#endif /* DEBUG */
 	serial_puts("\n\nNAND Secondary Program Loader\n\n");
 
 #ifndef CONFIG_FPGA
@@ -436,12 +462,7 @@ void spl_boot(void)
 	block_size = CFG_NAND_BLOCK_SIZE;
 	page_per_block =  CFG_NAND_BLOCK_SIZE / CFG_NAND_PAGE_SIZE;
 	bad_block_pos = (page_size == 512) ? 5 : 0;
-
-#if defined(CONFIG_NAND_K9GAG08U0E) || defined(CONFIG_NAND_K9GAG08U0D) || defined(CONFIG_NAND_K9GBG08U0M)
 	oob_size = CFG_NAND_OOB_SIZE;
-#else
-	oob_size = page_size / 32;
-#endif
 
 	ecc_count = page_size / ECC_BLOCK;
 

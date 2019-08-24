@@ -58,20 +58,6 @@ static int par_size;
 #define __nand_enable()		(REG_NEMC_NFCSR |= NEMC_NFCSR_NFE1 | NEMC_NFCSR_NFCE1)
 #define __nand_disable()	(REG_NEMC_NFCSR &= ~(NEMC_NFCSR_NFCE1))
 
-#if 0
-static char chars[16] = {'0', '1', '2','3','4','5','6','7','8','9','a','b','c','d','e','f'};
-void serial_puts_long(unsigned int d)
-{
-	int i;
-	unsigned char c;
-	for (i = 7; i >= 0; i--) {
-		c = chars[(d >> (4 * i)) & 0xf];
-		serial_putc(c);
-	}
-	serial_putc('\n');
-}
-#endif
-
 static inline void nand_wait_ready(void)
 {
 	unsigned int timeout = 1000;
@@ -83,13 +69,14 @@ static inline void nand_wait_ready(void)
  * NAND flash parameters
  */
 static int bus_width = 8;
-static int page_size = 2048;
-static int oob_size = 64;
+static int page_size = 8192;
+static int oob_size = 436;
 static int ecc_count = 4;
 static int row_cycle = 3;
-static int page_per_block = 64;
+static int page_per_block = 128;
 static int bad_block_pos = 0;
-static int block_size = 131072;
+static int block_size = 1048576;
+static int free_size = 512;
 
 static unsigned char oob_buf[512] = {0};
 
@@ -205,7 +192,9 @@ static int nand_read_oob(int page_addr, u8 *buf, int size)
 static int nand_read_page(int page_addr, unsigned char *dst, unsigned char *oobbuf)
 {
 	unsigned char *data_buf = dst;
+	unsigned char *free_buf_p = dst + page_size - free_size;
 	int i, j,eccbytes = (par_size + 1) / 2;
+	u32 *errs;
 
 	/* Send READ0 command */
 	__nand_cmd(NAND_CMD_READ0);
@@ -228,9 +217,6 @@ static int nand_read_page(int page_addr, unsigned char *dst, unsigned char *oobb
 	/* Wait for device ready */
 	nand_wait_ready();
 
-	/* Read page data */
-	data_buf = dst;
-
 	/* Read data */
 #if CFG_NAND_USE_PN
 	__nemc_pn_reset_and_enable();
@@ -243,30 +229,34 @@ static int nand_read_page(int page_addr, unsigned char *dst, unsigned char *oobb
 #if CFG_NAND_USE_PN
 	__nemc_pn_disable();
 #endif
-
-	ecc_count = page_size / ECC_BLOCK;
+	ecc_count = (page_size - free_size) / ECC_BLOCK;
 
 	for (i = 0; i < ecc_count; i++) {
 		unsigned int stat;
 
 		__ecc_cnt_dec(2 * ECC_BLOCK + par_size);
-
+		
 
                 /* Enable BCH decoding */
 		REG_BCH_INTS = 0xffffffff;
-		if (CFG_NAND_BCH_BIT == 8)
+		if (CFG_NAND_BCH_BIT == 24)
+			__ecc_decoding_24bit();
+		else if (CFG_NAND_BCH_BIT == 8)
 			__ecc_decoding_8bit();
 		else
 			__ecc_decoding_4bit();
 
                 /* Write 512 bytes and par_size parities to REG_BCH_DR */
 		for (j = 0; j < ECC_BLOCK; j++) {
-			//serial_put_hex(data_buf[j]);
 			REG_BCH_DR = data_buf[j];
 		}
 
 		for (j = 0; j < eccbytes; j++) {
-			REG_BCH_DR = oob_buf[CFG_NAND_ECC_POS + i * eccbytes + j];
+			if ((CFG_NAND_ECC_POS + i *eccbytes + j) < oob_size ) {
+				REG_BCH_DR = oob_buf[CFG_NAND_ECC_POS + i * eccbytes + j];
+			} else {
+				REG_BCH_DR = *free_buf_p++; 
+			}
 		}
 
 		/* Wait for completion */
@@ -279,30 +269,15 @@ static int nand_read_page(int page_addr, unsigned char *dst, unsigned char *oobb
 			if (stat & BCH_INTS_UNCOR) {
 				/* Uncorrectable error occurred */
 				serial_puts("Uncorrectable\n");
-			}
-			else {
+			} else {
 				unsigned int errcnt = (stat & BCH_INTS_ERRC_MASK) >> BCH_INTS_ERRC_BIT;
-
-				switch (errcnt) {
-				case 8:
-					bch_correct(data_buf, (REG_BCH_ERR3 & BCH_ERR_INDEX_ODD_MASK) >> BCH_ERR_INDEX_ODD_BIT);
-				case 7:
-					bch_correct(data_buf, (REG_BCH_ERR3 & BCH_ERR_INDEX_EVEN_MASK) >> BCH_ERR_INDEX_EVEN_BIT);
-				case 6:
-					bch_correct(data_buf, (REG_BCH_ERR2 & BCH_ERR_INDEX_ODD_MASK) >> BCH_ERR_INDEX_ODD_BIT);
-				case 5:
-					bch_correct(data_buf, (REG_BCH_ERR2 & BCH_ERR_INDEX_EVEN_MASK) >> BCH_ERR_INDEX_EVEN_BIT);
-				case 4:
-					bch_correct(data_buf, (REG_BCH_ERR1 & BCH_ERR_INDEX_ODD_MASK) >> BCH_ERR_INDEX_ODD_BIT);
-				case 3:
-					bch_correct(data_buf, (REG_BCH_ERR1 & BCH_ERR_INDEX_EVEN_MASK) >> BCH_ERR_INDEX_EVEN_BIT);
-				case 2:
-					bch_correct(data_buf, (REG_BCH_ERR0 & BCH_ERR_INDEX_ODD_MASK) >> BCH_ERR_INDEX_ODD_BIT);
-				case 1:
-					bch_correct(data_buf, (REG_BCH_ERR0 & BCH_ERR_INDEX_EVEN_MASK) >> BCH_ERR_INDEX_EVEN_BIT);
-					break;
-				default:
-					break;
+				errs = (u32 *)BCH_ERR0;
+				for (i = 0; i < errcnt; i++) {
+					/* errs[i>>1] get the BCH error report register value, i-error bit index,
+					 * so errs[i>>1]>>((i%2)<<4) means that if the error bit index is odd, 
+					 * errs[i>>1] >> 16. ## Please refer to Jz4770 Programming Manual.##
+					 */
+					bch_correct(data_buf, (errs[i>>1] >> ((i % 2) << 4)) & BCH_ERR_INDEX_MASK);
 				}
 			}
 		}
@@ -338,35 +313,12 @@ static void nand_load(int offs, int uboot_size, unsigned char *dst)
 		/* Load this page to dst, do the ECC */
 		nand_read_page(page, dst, oob_buf);
 
-		dst += page_size;
+		dst += (page_size - free_size);
 		page++;
 		pagecopy_count++;
 	}
 
 	__nand_disable();
-}
-
-void enable_uart_RX_pull_up(void)
-{
-	//UART0
-	REG_GPIO_PXPENC(32 * 5 + 0);
-
-	//UART1
-	REG_GPIO_PXPENC(32 * 3 + 26);
-
-        //UART2
-	REG_GPIO_PXPENC(32 * 2 + 28);
-
-        //UART3
-	REG_GPIO_PXPENC(32 * 3 + 12);
-}
-
-void enable_certain_pull_down(void)
-{
-	int i;
-
-	for(i = 4; i < 12; i++)
-		REG_GPIO_PXPENC(32 * 5 + i);
 }
 
 static void gpio_init(void)
@@ -391,12 +343,6 @@ static void gpio_init(void)
 
 	}
 
-	// This function can avoid UART floating, but should not call if UART will be in high frequency.
-	enable_uart_RX_pull_up();
-
-	// This function pulls down the certain GPIO
-	enable_certain_pull_down();
-
 #ifdef CONFIG_FPGA
 	__gpio_as_nor();
 
@@ -409,6 +355,21 @@ static void gpio_init(void)
 	}
 #endif
 }
+
+static int calc_free_size(void)
+{
+	int freesize;
+	int eccbytes;
+	
+	eccbytes = (par_size + 1) / 2;
+
+	if (ecc_count * eccbytes + CFG_NAND_ECC_POS > oob_size)
+		freesize = 512;
+	else
+		freesize = 0;
+
+	return freesize;
+} 
 
 void spl_boot(void)
 {
@@ -426,10 +387,17 @@ void spl_boot(void)
 	/*
 	 * Init hardware
 	 */
-	__cpm_start_mdma();
+
+	__cpm_start_dmac();
 	__cpm_start_ddr();
 	/* enable mdmac's clock */
 	REG_MDMAC_DMACKES = 0x3;
+
+	//set bch divider
+//	__cpm_sw_bchm();
+	__cpm_set_bchdiv(3);
+	__cpm_start_bch();
+
 	gpio_init();
 	serial_init();
 
@@ -438,7 +406,6 @@ void spl_boot(void)
 #ifndef CONFIG_FPGA
 	pll_init();
 #endif
-
 	sdram_init();
 
 	bus_width = (CFG_NAND_BW8==1) ? 8 : 16;
@@ -447,13 +414,25 @@ void spl_boot(void)
 	block_size = CFG_NAND_BLOCK_SIZE;
 	page_per_block =  CFG_NAND_BLOCK_SIZE / CFG_NAND_PAGE_SIZE;
 	bad_block_pos = (page_size == 512) ? 5 : 0;
-	oob_size = page_size / 32;
+	oob_size = CFG_NAND_OOB_SIZE;
+
 	ecc_count = page_size / ECC_BLOCK;
-	if (CFG_NAND_BCH_BIT == 8)
+
+	if (CFG_NAND_BCH_BIT == 24)
+		par_size = 78;
+	else if (CFG_NAND_BCH_BIT == 20)
+		par_size = 65;
+	else if (CFG_NAND_BCH_BIT == 16)
+		par_size = 52;
+	else if (CFG_NAND_BCH_BIT == 12)
+		par_size = 39;
+	else if (CFG_NAND_BCH_BIT == 8)
 		par_size = 26;
 	else
 		par_size = 13;
 
+	free_size = calc_free_size();
+	
 #if CFG_NAND_BW8 == 1
 	REG_NEMC_SMCR1 = CFG_NAND_SMCR1;
 #else

@@ -2151,6 +2151,7 @@ do {							\
 #define	MSC_RES			(MSC0_BASE + 0x034)
 #define	MSC_RXFIFO		(MSC0_BASE + 0x038)
 #define	MSC_TXFIFO		(MSC0_BASE + 0x03C)
+#define	MSC_LPM 		(MSC0_BASE + 0x040)
 
 #define	REG_MSC_STRPCL		REG16(MSC_STRPCL)
 #define	REG_MSC_STAT		REG32(MSC_STAT)
@@ -2168,6 +2169,7 @@ do {							\
 #define	REG_MSC_RES		REG16(MSC_RES)
 #define	REG_MSC_RXFIFO		REG32(MSC_RXFIFO)
 #define	REG_MSC_TXFIFO		REG32(MSC_TXFIFO)
+#define	REG_MSC_LPM		REG32(MSC_LPM)
 
 /* MSC Clock and Control Register (MSC_STRPCL) */
 

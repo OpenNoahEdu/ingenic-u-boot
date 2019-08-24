@@ -281,6 +281,8 @@ int  mmc_init(void)
 		REG_MSC_CLKRT = 0;	/* 16/1 MHz */
 		resp = mmc_cmd(7, 0x10, 0x1, MSC_CMDAT_RESPONSE_R1);
 		resp = mmc_cmd(6, 0x3b70101, 0x441, MSC_CMDAT_RESPONSE_R1);
+		while(!(REG_MSC_STAT & MSC_STAT_PRG_DONE))
+			;
 	}
 	else
 		sd_init();

@@ -15,7 +15,7 @@
 
 #if (CONFIG_COMMANDS & CFG_CMD_JZ)
 
-#if defined(CONFIG_JZ4750) || defined(CONFIG_JZ4750D) || defined(CONFIG_JZ4750L) || defined(CONFIG_JZ4760) || defined(CONFIG_JZ4760B)
+#if defined(CONFIG_JZ4750) || defined(CONFIG_JZ4750D) || defined(CONFIG_JZ4750L) || defined(CONFIG_JZ4760) || defined(CONFIG_JZ4760B) || defined(CONFIG_JZ4770)
 
 #if defined(CONFIG_JZ4750)
 #include <asm/jz4750.h>
@@ -31,6 +31,9 @@
 #endif
 #if defined(CONFIG_JZ4760B)
 #include <asm/jz4760b.h>
+#endif
+#if defined(CONFIG_JZ4770)
+#include <asm/jz4770.h>
 #endif
 
 #define u32 unsigned int

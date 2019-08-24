@@ -33,7 +33,8 @@
 #include "jz4770_eth.h"
 
 
-#define MAX_WAIT	4000
+/* The amount of time between FLP bursts is 16ms +/- 8ms */
+#define MAX_WAIT	40000
 //#define USE_RMII	1
 
 /* Tx and Rx DMA descriptor */
@@ -88,7 +89,7 @@ static void fifo_test()
 		udelay(1);
 	}
 	REG32(ETH_FIFO_RAR2) |= RAR2_HT_R_REQ;
-	
+
 	printf("Read tx FIFO: from [0x0000]: 0x%x\n", REG32(ETH_FIFO_RAR3));
 	printf("===========================================================\n");
 }
@@ -188,7 +189,7 @@ static void sal_regs_dump(void)
 	printf("==================================================\n");
 	printf("ETH_SAL_AFR = 0x%08x, ETH_SAL_HT1 = 0x%08x, ETH_SAL_HT2 = 0x%08x\n",
 	       REG32(ETH_SAL_AFR), REG32(ETH_SAL_HT1), REG32(ETH_SAL_HT2));
-	printf("==================================================\n");	
+	printf("==================================================\n");
 }
 
 static void sal_regs_test(void)
@@ -217,7 +218,7 @@ static void stat_regs_test(void)
 	REG32(ETH_STAT_TR1K) = 0x3;
 	REG32(ETH_STAT_TRMAX) = 0x3;
 	REG32(ETH_STAT_TRMGV) = 0x3;
-	/* Receive counters */ 
+	/* Receive counters */
 	REG32(ETH_STAT_RBYT) = 0x3;
 	REG32(ETH_STAT_RPKT) = 0x3;
 	REG32(ETH_STAT_RFCS) = 0x3;
@@ -235,7 +236,7 @@ static void stat_regs_test(void)
 	REG32(ETH_STAT_RFRG) = 0x3;
 	REG32(ETH_STAT_RJBR) = 0x3;
 	REG32(ETH_STAT_RDRP) = 0x3;
-	/* Transmit counters */ 
+	/* Transmit counters */
 	REG32(ETH_STAT_TBYT) = 0x3;
 	REG32(ETH_STAT_TPKT) = 0x3;
 	REG32(ETH_STAT_TMCA) = 0x3;
@@ -256,7 +257,7 @@ static void stat_regs_test(void)
 	REG32(ETH_STAT_TOVR) = 0x3;
 	REG32(ETH_STAT_TUND) = 0x3;
 	REG32(ETH_STAT_TFRG) = 0x3;
-	/* Carry registers */ 
+	/* Carry registers */
 	REG32(ETH_STAT_CAR1) = 0x3;
 	REG32(ETH_STAT_CAR2) = 0x3;
 	REG32(ETH_STAT_CARM1) = 0x3;
@@ -285,6 +286,7 @@ static u32 mii_read(int phy_id, int reg_offset)
 
 	__mac_send_mii_read_cmd(phy_id, reg_offset, MII_NO_SCAN);
 
+#if 1
 	for (i = 0;
 	     i < MAX_WAIT && __mac_mii_is_busy();
 	     i++, udelay(1)) {
@@ -298,6 +300,9 @@ static u32 mii_read(int phy_id, int reg_offset)
 		printf("MII wait timeout\n");
 		return 0;
 	}
+#else
+	while (__mac_mii_is_busy());
+#endif
 
 	return __mac_mii_read_data();
 }
@@ -306,11 +311,15 @@ static int autonet_complete(int phy_id)
 {
 	int	i;
 
+#if 1
 	for (i = 0;
 	     i < MAX_WAIT && !(mii_read(phy_id, MII_SR) & 0x0020);
-	     i++, udelay(10)) {
-		;
+	     i++) {
+		udelay(100);
 	}
+#else
+	while(!mii_read(phy_id, MII_SR) & 0x20);
+#endif
 
 	if (i == MAX_WAIT) {
 		printf("autonet_comlete: autonet time out!\n");
@@ -378,7 +387,7 @@ static void config_mac(void)
 			      eth_get_dev()->enetaddr[3],
 			      eth_get_dev()->enetaddr[4],
 			      eth_get_dev()->enetaddr[5]);
-	
+
 	// Enable tx & rx flow control, enable receive
 	mac_cfg_1 = MCR1_TFC | MCR1_RFC | MCR1_RE;
 
@@ -414,7 +423,7 @@ static void config_mac(void)
 	if (full_duplex) {
 		mac_cfg_2 |= MCR2_FD;
 		__mac_set_IPGR(0x15);
-		
+
 	} else {
 		__mac_set_IPGR(0x12);
 	}
@@ -484,7 +493,7 @@ static void config_fifo(void)
 
 static int jz_send(struct eth_device* dev, volatile void *packet, int length)
 {
-	volatile eth_desc_t *desc = 
+	volatile eth_desc_t *desc =
 		(volatile eth_desc_t *)((unsigned int)(tx_desc + next_tx) | 0xa0000000);
 	int i, ret = 1;
 	char c;
@@ -658,6 +667,11 @@ static int jz_init(struct eth_device* dev, bd_t * bd)
 
 //	stat_regs_test();
 //	sal_regs_test();
+	__cpm_start_mac();
+
+	__gpio_as_output0(32 * 4 + 8);
+	udelay(100000);
+	__gpio_as_output1(32 * 4 + 8);
 
 	__gpio_as_eth();
 	/* Disable interrupts */
@@ -670,6 +684,8 @@ static int jz_init(struct eth_device* dev, bd_t * bd)
 //	printf("reset mac ...\n");
 	__mac_reset();
 
+	printf("JZ On-Chip ethernet\n");
+	//udelay(10000);
 //	printf("search_phy ...\n");
 	for (i = 0; i < 32; i++) {
 		if (search_phy(i)) {
@@ -681,10 +697,13 @@ static int jz_init(struct eth_device* dev, bd_t * bd)
 	if (phyid == -1) {
 		printf("Can't locate any PHY\n");
 		while(1) ;
+	} else {
+		printf("Found one phy, phyid = %d\n", phyid);
 	}
 
 //	printf("autonet_complete(%d) ...\n", phyid);
 
+	//udelay(10000);
 	/* Start Auto Negotiation of PHY 0 and check it */
 	if (autonet_complete(phyid))
 		printf("ETH Auto-Negotiation failed\n");

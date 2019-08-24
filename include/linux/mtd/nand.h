@@ -176,6 +176,16 @@ extern int nand_read_raw (struct mtd_info *mtd, uint8_t *buf, loff_t from, size_
 /* Chip has a array of 4 pages which can be read without
  * additional ready /busy waits */
 #define NAND_4PAGE_ARRAY	0x00000040
+/* Chip requires that BBT is periodically rewritten to prevent
+ * bits from adjacent blocks from 'leaking' in altering data.
+ * This happens with the Renesas AG-AND chips, possibly others.  */
+#define BBT_AUTO_REFRESH	0x00000080
+/* Chip does not require ready check on read. True
+ * for all large page devices, as they do not support
+ * autoincrement.*/
+#define NAND_NO_READRDY		0x00000100
+/* Chip does not allow subpage writes */
+#define NAND_NO_SUBPAGE_WRITE	0x00000200
 
 /* Options valid for Samsung large page devices */
 #define NAND_SAMSUNG_LP_OPTIONS \
@@ -382,12 +392,38 @@ struct nand_chip {
  * @chipsize:	Total chipsize in Mega Bytes
  * @options:	Bitfield to store chip relevant options
  */
+#if 0
 struct nand_flash_dev {
 	char *name;
 	int id;
 	unsigned long pagesize;
 	unsigned long chipsize;
 	unsigned long erasesize;
+	unsigned long options;
+};
+#endif
+struct nand_flash_dev {
+	char *name;
+	int id;
+	uint32_t extid;
+	int realplanenum;
+	int dienum;
+	int tals;
+	int talh;
+	int trp;
+	int twp;
+	int trhw;
+	int trhr;
+	unsigned long pagesize;
+	unsigned long erasesize;
+	uint32_t oobsize;
+	int rowcycle;
+	int maxbadblocks;
+	int maxvalidblocks;
+	int eccblock;
+	int eccbit;
+	int buswidth;
+	int badblockpos;	
 	unsigned long options;
 };
 
@@ -478,7 +514,7 @@ extern int nand_update_bbt (struct mtd_info *mtd, loff_t offs);
 extern int nand_default_bbt (struct mtd_info *mtd);
 extern int nand_isbad_bbt (struct mtd_info *mtd, loff_t offs, int allowbbt);
 extern int nand_erase_nand (struct mtd_info *mtd, struct erase_info *instr, int allowbbt);
-
+extern int get_flash_num(void);
 /*
 * Constants for oob configuration
 */

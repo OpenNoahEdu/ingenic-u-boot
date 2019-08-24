@@ -55,7 +55,7 @@ struct mtd_info {
 	u_int32_t erasesize;
 
 	u_int32_t oobblock;  /* Size of OOB blocks (e.g. 512) */
-#if defined(CONFIG_JZ4760B)
+#if defined(CONFIG_JZ4760B) || defined(CONFIG_JZ4770)
         u_int32_t freesize;  /* Size of free space per page (e.g. 512 1024 etc.) */
         u_int32_t data_per_page;  /* Size of valid data per page */
 #endif

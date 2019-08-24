@@ -2147,6 +2147,32 @@ f4770_nand_config	:	unconfig
 	@echo "CONFIG_USE_DDR2 = n" >> $(obj)include/config.mk
 	@echo "CONFIG_USE_SDRAM = n" >> $(obj)include/config.mk
 
+f4770_nand_ddr2_config	:	unconfig
+	@echo "#define CONFIG_NAND_U_BOOT" > $(obj)include/config.h
+	@echo "#define CONFIG_SDRAM_DDR2" >> $(obj)include/config.h
+	@echo "Compile NAND boot image for f4770"
+	@./mkconfig -a f4770 mips mips f4770
+	@echo "TEXT_BASE = 0x80100000" > $(obj)board/f4770/config.tmp
+	@echo "CONFIG_NAND_U_BOOT = y" >> $(obj)include/config.mk
+	@echo "CONFIG_CPU_TYPE = 4770" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_MDDR = n" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_DDR1 = n" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_DDR2 = y" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_SDRAM = n" >> $(obj)include/config.mk
+
+f4770_spi_config	:	unconfig
+	@echo "#define CONFIG_SPI_U_BOOT" > $(obj)include/config.h
+	@echo "#define CONFIG_SDRAM_MDDR" >> $(obj)include/config.h
+	@echo "Compile SPI boot image for f4770"
+	@./mkconfig -a f4770 mips mips f4770
+	@echo "TEXT_BASE = 0x80100000" > $(obj)board/f4770/config.tmp
+	@echo "CONFIG_SPI_U_BOOT = y" >> $(obj)include/config.mk
+	@echo "CONFIG_CPU_TYPE = 4770" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_MDDR = y" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_DDR1 = n" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_DDR2 = n" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_SDRAM = n" >> $(obj)include/config.mk
+
 f4770_msc_config	:	unconfig
 	@echo "#define CONFIG_MSC_U_BOOT" > $(obj)include/config.h
 	@echo "#define CONFIG_SDRAM_MDDR" >> $(obj)include/config.h
@@ -2496,7 +2522,46 @@ slt_60_nand_config:	unconfig
 	@echo "CONFIG_USE_DDR2 = y" >> $(obj)include/config.mk
 	@echo "CONFIG_USE_SDRAM = n" >> $(obj)include/config.mk
 
+slt_70_nand_config:	unconfig
+	@echo "#define CONFIG_NAND_U_BOOT" > $(obj)include/config.h
+	@echo "#define CONFIG_SDRAM_DDR2" >> $(obj)include/config.h
+	@echo "Compile NAND boot image for slt_70"
+	@./mkconfig -a slt_70 mips mips slt_70
+	@echo "TEXT_BASE = 0x80100000" > $(obj)board/slt_70/config.tmp
+	@echo "CONFIG_NAND_U_BOOT = y" >> $(obj)include/config.mk
+	@echo "CONFIG_CPU_TYPE = 4770" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_MDDR = n" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_DDR1 = n" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_DDR2 = y" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_SDRAM = n" >> $(obj)include/config.mk
 
+pisces_nand_config	:	unconfig
+	@echo "#define CONFIG_NAND_U_BOOT" > $(obj)include/config.h
+	@echo "#define CONFIG_SDRAM_DDR2" >> $(obj)include/config.h
+	@echo "Compile NAND boot image for pisces"
+	@./mkconfig -a pisces mips mips pisces
+	@echo "TEXT_BASE = 0x80100000" > $(obj)board/pisces/config.tmp
+	@echo "CONFIG_NAND_U_BOOT = y" >> $(obj)include/config.mk
+	@echo "CONFIG_CPU_TYPE = 4770" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_MDDR = n" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_DDR1 = n" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_DDR2 = y" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_SDRAM = n" >> $(obj)include/config.mk
+
+
+pisces_msc_config	:	unconfig
+	@echo "#define CONFIG_MSC_U_BOOT" > $(obj)include/config.h
+	@echo "#define CONFIG_SDRAM_DDR2" >> $(obj)include/config.h
+	@echo "Compile MSC boot image for pisces"
+	@./mkconfig -a pisces mips mips pisces
+	@echo "TEXT_BASE = 0x80100200" > $(obj)board/pisces/config.tmp
+	@echo "CONFIG_MSC_U_BOOT = y" >> $(obj)include/config.mk
+	@echo "CONFIG_CPU_TYPE = 4770" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_MDDR = n" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_DDR1 = n" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_DDR2 = y" >> $(obj)include/config.mk
+	@echo "CONFIG_USE_SDRAM = n" >> $(obj)include/config.mk
+	@echo "CONFIG_MBR_UBOOT = y" >> $(obj)include/config.mk
 
 f4760_config		: 	unconfig
 	@echo "#define CONFIG_F4760 1" >>include/config.h

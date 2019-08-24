@@ -8,7 +8,7 @@
  * MDDR info
  */
 /* Chip Select */
-#define DDR_CS1EN 1 // CSEN : whether a ddr chip exists 0 - un-used, 1 - used
+#define DDR_CS1EN 0 // CSEN : whether a ddr chip exists 0 - un-used, 1 - used
 #define DDR_CS0EN 1
 #define DDR_DW32 1/* 0 - 16-bit data width, 1 - 32-bit data width */
 

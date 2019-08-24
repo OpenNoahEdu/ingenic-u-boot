@@ -1,5 +1,5 @@
 /*
- * Platform independend driver for JZ4760.
+ * Platform independend driver for JZ4770.
  *
  * Copyright (c) 2007 Ingenic Semiconductor Inc.
  * Author: <jlwei@ingenic.cn>
@@ -63,7 +63,6 @@ static void jz_hwcontrol(struct mtd_info *mtd, int cmd)
 				this->IO_ADDR_W = (void __iomem *)((unsigned long)(this->IO_ADDR_W) & ~NAND_ADDR_OFFSET);
 			break;
 	}
-	/* printk("this->IO_ADDR_W=0x%x:cmd=0x%x\n",this->IO_ADDR_W,cmd); */
 }
 
 static int jz_device_ready(struct mtd_info *mtd)
@@ -101,22 +100,10 @@ static int jzsoc_nand_calculate_bch_ecc(struct mtd_info *mtd, const u_char * dat
 	struct nand_chip *this = (struct nand_chip *)(mtd->priv);
 	volatile u8 *paraddr = (volatile u8 *)BCH_PAR0;
 	short i;
-#ifdef CFG_NAND_BCH_WITH_OOB
-	/* Write data to REG_BCH_DR */
-	for (i = 0; i < this->eccsize; i++) {
-		REG_BCH_DR = ((struct buf_be_corrected *)dat)->data[i];
-	}
-
-	/* Write oob to REG_BCH_DR */
-	for (i = 0; i < CFG_NAND_ECC_POS / this->eccsteps; i++) {
-		REG_BCH_DR = ((struct buf_be_corrected *)dat)->oob[i];
-	}
-#else
 	/* Write data to REG_BCH_DR */
 	for (i = 0; i < this->eccsize; i++) {
 		REG_BCH_DR = dat[i];
 	}
-#endif
 	__ecc_encode_sync();
 	__ecc_disable();
 
@@ -134,27 +121,23 @@ static void jzsoc_nand_enable_bch_hwecc(struct mtd_info* mtd, int mode)
 	REG_BCH_INTS = 0xffffffff;
 
 	if (mode == NAND_ECC_READ) {
-		if (CFG_NAND_BCH_BIT == 8)
+		if (CFG_NAND_BCH_BIT == 24)
+			__ecc_decoding_24bit();
+		else if (CFG_NAND_BCH_BIT == 8)
 			__ecc_decoding_8bit();
 		else
 			__ecc_decoding_4bit();
-#ifdef CFG_NAND_BCH_WITH_OOB
-		__ecc_cnt_dec(2*(this->eccsize + CFG_NAND_ECC_POS / this->eccsteps) + par_size);
-#else
 		__ecc_cnt_dec(2*this->eccsize + par_size);
-#endif
 	}
 
 	if (mode == NAND_ECC_WRITE) {
-		if (CFG_NAND_BCH_BIT == 8)
+		if (CFG_NAND_BCH_BIT == 24)
+			__ecc_encoding_24bit();
+		else if (CFG_NAND_BCH_BIT == 8)
 			__ecc_encoding_8bit();
 		else
 			__ecc_encoding_4bit();
-#ifdef CFG_NAND_BCH_WITH_OOB
-		__ecc_cnt_enc(2*(this->eccsize + CFG_NAND_ECC_POS / this->eccsteps));
-#else
 		__ecc_cnt_enc(2*(this->eccsize));
-#endif
 	}
 }
 
@@ -170,15 +153,8 @@ static void bch_correct(struct mtd_info *mtd, u8 * dat, int idx)
 	i = (idx - 1) >> 3;
 	bit = (idx - 1) & 0x7;
 
-#ifdef CFG_NAND_BCH_WITH_OOB
-	if (i < this->eccsize)
-		((struct buf_be_corrected *)dat)->data[i] ^= (1 << bit);
-	else if (i <  (this->eccsize + CFG_NAND_ECC_POS / this->eccsteps))
-		((struct buf_be_corrected *)dat)->oob[i - this->eccsize] ^= (1 << bit);
-#else
 	if (i < this->eccsize)
 		dat[i] ^= (1 << bit);
-#endif
 }
 
 /**
@@ -194,21 +170,10 @@ static int jzsoc_nand_bch_correct_data(struct mtd_info *mtd, u_char * dat, u_cha
 	short k;
 	u32 stat;
 
-#ifdef CFG_NAND_BCH_WITH_OOB
-	/* Write data to REG_BCH_DR */
-	for (k = 0; k < this->eccsize; k++) {
-		REG_BCH_DR = ((struct buf_be_corrected *)dat)->data[k];
-	}
-	/* Write oob to REG_BCH_DR */
-	for (k = 0; k < CFG_NAND_ECC_POS / this->eccsteps; k++) {
-		REG_BCH_DR = ((struct buf_be_corrected *)dat)->oob[k];
-	}
-#else
 	/* Write data to REG_BCH_DR */
 	for (k = 0; k < this->eccsize; k++) {
 		REG_BCH_DR = dat[k];
 	}
-#endif
 
 	/* Write parities to REG_BCH_DR */
 	for (k = 0; k < (par_size+1)/2; k++) {
@@ -230,6 +195,55 @@ static int jzsoc_nand_bch_correct_data(struct mtd_info *mtd, u_char * dat, u_cha
 		} else {
 			u32 errcnt = (stat & BCH_INTS_ERRC_MASK) >> BCH_INTS_ERRC_BIT;
 			switch (errcnt) {
+			printk("NAND: Correctable ECC No.%d\n",errcnt);
+			case 24:
+			  bch_correct(mtd, dat, (REG_BCH_ERR11 & BCH_ERR_INDEX_ODD_MASK) >> BCH_ERR_INDEX_ODD_BIT);
+				/* FALL-THROUGH */
+			case 23:
+			  bch_correct(mtd, dat, (REG_BCH_ERR11 & BCH_ERR_INDEX_EVEN_MASK) >> BCH_ERR_INDEX_EVEN_BIT);
+				/* FALL-THROUGH */
+			case 22:
+			  bch_correct(mtd, dat, (REG_BCH_ERR10 & BCH_ERR_INDEX_ODD_MASK) >> BCH_ERR_INDEX_ODD_BIT);
+				/* FALL-THROUGH */
+			case 21:
+			  bch_correct(mtd, dat, (REG_BCH_ERR10 & BCH_ERR_INDEX_EVEN_MASK) >> BCH_ERR_INDEX_EVEN_BIT);
+				/* FALL-THROUGH */
+			case 20:
+			  bch_correct(mtd, dat, (REG_BCH_ERR9 & BCH_ERR_INDEX_ODD_MASK) >> BCH_ERR_INDEX_ODD_BIT);
+				/* FALL-THROUGH */
+			case 19:
+			  bch_correct(mtd, dat, (REG_BCH_ERR9 & BCH_ERR_INDEX_EVEN_MASK) >> BCH_ERR_INDEX_EVEN_BIT);
+				/* FALL-THROUGH */
+			case 18:
+			  bch_correct(mtd, dat, (REG_BCH_ERR8 & BCH_ERR_INDEX_ODD_MASK) >> BCH_ERR_INDEX_ODD_BIT);
+				/* FALL-THROUGH */
+			case 17:
+			  bch_correct(mtd, dat, (REG_BCH_ERR8 & BCH_ERR_INDEX_EVEN_MASK) >> BCH_ERR_INDEX_EVEN_BIT);;
+			  break;
+			case 16:
+			  bch_correct(mtd, dat, (REG_BCH_ERR7 & BCH_ERR_INDEX_ODD_MASK) >> BCH_ERR_INDEX_ODD_BIT);
+				/* FALL-THROUGH */
+			case 15:
+			  bch_correct(mtd, dat, (REG_BCH_ERR7 & BCH_ERR_INDEX_EVEN_MASK) >> BCH_ERR_INDEX_EVEN_BIT);
+				/* FALL-THROUGH */
+			case 14:
+			  bch_correct(mtd, dat, (REG_BCH_ERR6 & BCH_ERR_INDEX_ODD_MASK) >> BCH_ERR_INDEX_ODD_BIT);
+				/* FALL-THROUGH */
+			case 13:
+			  bch_correct(mtd, dat, (REG_BCH_ERR6 & BCH_ERR_INDEX_EVEN_MASK) >> BCH_ERR_INDEX_EVEN_BIT);
+				/* FALL-THROUGH */
+			case 12:
+			  bch_correct(mtd, dat, (REG_BCH_ERR5 & BCH_ERR_INDEX_ODD_MASK) >> BCH_ERR_INDEX_ODD_BIT);
+				/* FALL-THROUGH */
+			case 11:
+			  bch_correct(mtd, dat, (REG_BCH_ERR5 & BCH_ERR_INDEX_EVEN_MASK) >> BCH_ERR_INDEX_EVEN_BIT);
+				/* FALL-THROUGH */
+			case 10:
+			  bch_correct(mtd, dat, (REG_BCH_ERR4 & BCH_ERR_INDEX_ODD_MASK) >> BCH_ERR_INDEX_ODD_BIT);
+				/* FALL-THROUGH */
+			case 9:
+			  bch_correct(mtd, dat, (REG_BCH_ERR4 & BCH_ERR_INDEX_EVEN_MASK) >> BCH_ERR_INDEX_EVEN_BIT);;
+			  break;
 			case 8:
 			  bch_correct(mtd, dat, (REG_BCH_ERR3 & BCH_ERR_INDEX_ODD_MASK) >> BCH_ERR_INDEX_ODD_BIT);
 				/* FALL-THROUGH */
@@ -270,7 +284,11 @@ void board_nand_init(struct nand_chip *nand)
 {
 	jz_device_setup();
 
-	if (CFG_NAND_BCH_BIT == 8) {
+	if (CFG_NAND_BCH_BIT == 24) {
+		par_size = 78;
+		nand->eccmode = NAND_ECC_HW39_512;
+	}
+	else if (CFG_NAND_BCH_BIT == 8) {
 		par_size = 26;
 		nand->eccmode = NAND_ECC_HW13_512;
 	} else {
@@ -291,7 +309,6 @@ void board_nand_init(struct nand_chip *nand)
 
         /* 20 us command delay time */
         nand->chip_delay = 20;
-//	nand->autooob    = &nand_oob_bch; // init in nand_base.c
 
 	nand->options &= ~NAND_BUSWIDTH_16;
 #if CFG_NAND_BW8 == 0
